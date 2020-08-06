@@ -5,8 +5,8 @@
 	.macro handle_invalid_entry type
 	kernel_entry
 	mov	x0, #\type
-	mrs	x1, esr_el1
-	mrs	x2, elr_el1
+	mrs	x1, esr_el2
+	mrs	x2, elr_el2
 	bl	show_invalid_entry_message
 	b	err_hang
 	.endm
@@ -139,7 +139,7 @@ el01_irq:
 
 el01_sync:
 	kernel_entry
-	mrs	x25, esr_el1				// read the syndrome register
+	mrs	x25, esr_el2				// read the syndrome register
 	lsr	x24, x25, #ESR_EL2_EC_SHIFT		// exception class
 	cmp	x24, #ESR_EL2_EC_HVC64			// HVC in 64-bit state
 	b.eq	el01_hvc
@@ -171,8 +171,8 @@ ret_from_hvc:
 
 el01_da:
 	bl	enable_irq
-	mrs	x0, far_el1
-	mrs	x1, esr_el1
+	mrs	x0, far_el2
+	mrs	x1, esr_el2
 	bl	do_mem_abort
 	cmp x0, 0
 	b.eq 1f

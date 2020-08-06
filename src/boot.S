@@ -52,9 +52,11 @@ el2_entry:
 	ldr	x0, =(TCR_VALUE)
 	msr	tcr_el2, x0
 
+	ldr	x0, =(VTCR_VALUE)
+	msr	vtcr_el2, x0
+
 	ldr	x0, =(MAIR_VALUE)
 	msr	mair_el2, x0
-
 
 	ldr	x2, =kernel_main
 

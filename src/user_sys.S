@@ -1,8 +1,7 @@
 .section ".text.user"
 
-.set SYS_WRITE_NUMBER, 0 		// syscal numbers 
-.set SYS_FORK_NUMBER, 1 	
-.set SYS_EXIT_NUMBER, 2 	
+.set HVC_WRITE_NUMBER, 0 		// hvc numbers
+.set HVC_EXIT_NUMBER, 1
 
 .globl user_delay
 user_delay:
@@ -10,20 +9,14 @@ user_delay:
 	bne user_delay
 	ret
 
-.globl call_sys_write
-call_sys_write:
-	mov w8, #SYS_WRITE_NUMBER	
-	svc #0
+.globl call_hvc_write
+call_hvc_write:
+	mov w8, #HVC_WRITE_NUMBER
+	hvc #0
 	ret
 
-.globl call_sys_exit
-call_sys_exit:
-	mov w8, #SYS_EXIT_NUMBER	
-	svc #0
-	ret
-
-.globl call_sys_fork
-call_sys_fork:
-	mov w8, #SYS_FORK_NUMBER	
-	svc #0
+.globl call_hvc_exit
+call_hvc_exit:
+	mov w8, #HVC_EXIT_NUMBER
+	hvc #0
 	ret

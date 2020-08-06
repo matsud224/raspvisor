@@ -43,19 +43,19 @@
 	mrs	x22, elr_el1
 	mrs	x23, spsr_el1
 
-	stp	x30, x21, [sp, #16 * 15] 
+	stp	x30, x21, [sp, #16 * 15]
 	stp	x22, x23, [sp, #16 * 16]
 	.endm
 
 	.macro	kernel_exit, el
 	ldp	x22, x23, [sp, #16 * 16]
-	ldp	x30, x21, [sp, #16 * 15] 
+	ldp	x30, x21, [sp, #16 * 15]
 
 	.if	\el == 0
 	msr	sp_el0, x21
 	.endif /* \el == 0 */
 
-	msr	elr_el1, x22			
+	msr	elr_el1, x22
 	msr	spsr_el1, x23
 
 
@@ -74,7 +74,7 @@
 	ldp	x24, x25, [sp, #16 * 12]
 	ldp	x26, x27, [sp, #16 * 13]
 	ldp	x28, x29, [sp, #16 * 14]
-	add	sp, sp, #S_FRAME_SIZE		
+	add	sp, sp, #S_FRAME_SIZE
 	eret
 	.endm
 
@@ -83,7 +83,7 @@
  * Exception vectors.
  */
 .align	11
-.globl vectors 
+.globl vectors
 vectors:
 	ventry	sync_invalid_el1t			// Synchronous EL1t
 	ventry	irq_invalid_el1t			// IRQ EL1t
@@ -146,22 +146,22 @@ error_invalid_el0_32:
 
 
 el1_irq:
-	kernel_entry 1 
+	kernel_entry 1
 	bl	handle_irq
-	kernel_exit 1 
+	kernel_exit 1
 
 el0_irq:
-	kernel_entry 0 
+	kernel_entry 0
 	bl	handle_irq
-	kernel_exit 0 
+	kernel_exit 0
 
 el0_sync:
 	kernel_entry 0
 	mrs	x25, esr_el1				// read the syndrome register
-	lsr	x24, x25, #ESR_ELx_EC_SHIFT		// exception class
-	cmp	x24, #ESR_ELx_EC_SVC64			// SVC in 64-bit state
+	lsr	x24, x25, #ESR_EL2_EC_SHIFT		// exception class
+	cmp	x24, #ESR_EL2_EC_HVC64			// HVC in 64-bit state
 	b.eq	el0_svc
-	cmp	x24, #ESR_ELx_EC_DABT_LOW		// data abort in EL0
+	cmp	x24, #ESR_EL2_EC_DABT_LOW		// data abort in EL0
 	b.eq	el0_da
 	handle_invalid_entry 0, SYNC_ERROR
 
@@ -183,20 +183,20 @@ el0_svc:
 ni_sys:
 	handle_invalid_entry 0, SYSCALL_ERROR
 ret_from_syscall:
-	bl	disable_irq				
+	bl	disable_irq
 	str	x0, [sp, #S_X0]				// returned x0
 	kernel_exit 0
 
 el0_da:
 	bl	enable_irq
 	mrs	x0, far_el1
-	mrs	x1, esr_el1			
+	mrs	x1, esr_el1
 	bl	do_mem_abort
 	cmp x0, 0
 	b.eq 1f
 	handle_invalid_entry 0, DATA_ABORT_ERROR
 1:
-	bl disable_irq				
+	bl disable_irq
 	kernel_exit 0
 
 .globl ret_from_fork
@@ -206,8 +206,8 @@ ret_from_fork:
 	mov	x0, x20
 	blr	x19
 ret_to_user:
-	bl disable_irq				
-	kernel_exit 0 
+	bl disable_irq
+	kernel_exit 0
 
 
 .globl err_hang

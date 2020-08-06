@@ -1,5 +1,5 @@
-#ifndef _FORK_H
-#define _FORK_H
+#ifndef _TASK_H
+#define _TASK_H
 
 #include "sched.h"
 

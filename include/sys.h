@@ -6,7 +6,6 @@
 #ifndef __ASSEMBLER__
 
 void sys_write(char * buf);
-int sys_fork();
 
 #endif
 

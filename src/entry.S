@@ -85,25 +85,25 @@
 .align	11
 .globl vectors
 vectors:
-	ventry	sync_invalid_el1t			// Synchronous EL1t
-	ventry	irq_invalid_el1t			// IRQ EL1t
-	ventry	fiq_invalid_el1t			// FIQ EL1t
-	ventry	error_invalid_el1t			// Error EL1t
+	ventry	sync_invalid_el1t			// Synchronous EL2
+	ventry	irq_invalid_el1t			// IRQ EL2
+	ventry	fiq_invalid_el1t			// FIQ EL2
+	ventry	error_invalid_el1t			// Error EL2
 
-	ventry	sync_invalid_el1h			// Synchronous EL1h
-	ventry	el1_irq					// IRQ EL1h
-	ventry	fiq_invalid_el1h			// FIQ EL1h
-	ventry	error_invalid_el1h			// Error EL1h
+	ventry	sync_invalid_el1h			// Synchronous EL2
+	ventry	el1_irq					// IRQ EL2
+	ventry	fiq_invalid_el1h			// FIQ EL2
+	ventry	error_invalid_el1h			// Error EL2
 
-	ventry	el0_sync				// Synchronous 64-bit EL0
-	ventry	el0_irq					// IRQ 64-bit EL0
-	ventry	fiq_invalid_el0_64			// FIQ 64-bit EL0
-	ventry	error_invalid_el0_64			// Error 64-bit EL0
+	ventry	el0_sync				// Synchronous 64-bit EL0 or 1
+	ventry	el0_irq					// IRQ 64-bit EL0 or 1
+	ventry	fiq_invalid_el0_64			// FIQ 64-bit EL0 or 1
+	ventry	error_invalid_el0_64			// Error 64-bit EL0 or 1
 
-	ventry	sync_invalid_el0_32			// Synchronous 32-bit EL0
-	ventry	irq_invalid_el0_32			// IRQ 32-bit EL0
-	ventry	fiq_invalid_el0_32			// FIQ 32-bit EL0
-	ventry	error_invalid_el0_32			// Error 32-bit EL0
+	ventry	sync_invalid_el0_32			// Synchronous 32-bit EL0 or 1
+	ventry	irq_invalid_el0_32			// IRQ 32-bit EL0 or 1
+	ventry	fiq_invalid_el0_32			// FIQ 32-bit EL0 or 1
+	ventry	error_invalid_el0_32			// Error 32-bit EL0 or 1
 
 sync_invalid_el1t:
 	handle_invalid_entry 1, SYNC_INVALID_EL1t

@@ -20,7 +20,10 @@
 #define HCR_RW	    			(1 << 31)
 #define HCR_TGE           (0 << 27)
 #define HCR_TWI           (1 << 13)
-#define HCR_VALUE			(HCR_E2H | HCR_RW | HCR_TGE | HCR_TWI)
+#define HCR_AMO           (1 << 5)  // routing to EL2
+#define HCR_IMO           (1 << 4)  // routing to EL2
+#define HCR_FMO           (1 << 3)  // routing to EL2
+#define HCR_VALUE			(HCR_E2H | HCR_RW | HCR_TGE | HCR_TWI | HCR_AMO | HCR_IMO | HCR_FMO)
 
 // ***************************************
 // SCR_EL3, Secure Configuration Register (EL3)

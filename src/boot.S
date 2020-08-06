@@ -7,17 +7,19 @@
 
 .globl _start
 _start:
-	mrs	x0, mpidr_el1		
+	mrs	x0, mpidr_el1
 	and	x0, x0,#0xFF		// Check processor id
 	cbz	x0, master		// Hang for all non-primary CPU
 	b	proc_hang
 
-proc_hang: 
+proc_hang:
 	b proc_hang
 
 master:
+  // Initial EL is 3
+  // Change EL from 3 to 2
 	ldr	x0, =SCTLR_VALUE_MMU_DISABLED
-	msr	sctlr_el1, x0		
+	msr	sctlr_el2, x0
 
 	ldr	x0, =HCR_VALUE
 	msr	hcr_el2, x0
@@ -28,12 +30,12 @@ master:
 	ldr	x0, =SPSR_VALUE
 	msr	spsr_el3, x0
 
-	adr	x0, el1_entry		
+	adr	x0, el2_entry
 	msr	elr_el3, x0
 
-	eret				
+	eret
 
-el1_entry:
+el2_entry:
 	adr	x0, bss_begin
 	adr	x1, bss_end
 	sub	x1, x1, x0
@@ -41,23 +43,23 @@ el1_entry:
 
 	bl 	__create_page_tables
 
-	mov	x0, #VA_START			
+	mov	x0, #VA_START
 	add	sp, x0, #LOW_MEMORY
 
-	adrp	x0, pg_dir				
-	msr	ttbr1_el1, x0
+	adrp	x0, pg_dir
+	msr	ttbr0_el2, x0
 
-	ldr	x0, =(TCR_VALUE)		
-	msr	tcr_el1, x0
+	ldr	x0, =(TCR_VALUE)
+	msr	tcr_el2, x0
 
 	ldr	x0, =(MAIR_VALUE)
-	msr	mair_el1, x0
+	msr	mair_el2, x0
 
 
 	ldr	x2, =kernel_main
 
-	mov	x0, #SCTLR_MMU_ENABLED				
-	msr	sctlr_el1, x0
+	mov	x0, #SCTLR_MMU_ENABLED
+	msr	sctlr_el2, x0
 
 	br 	x2
 
@@ -70,7 +72,7 @@ el1_entry:
 	lsr	\tmp1, \virt, #\shift
 	and	\tmp1, \tmp1, #PTRS_PER_TABLE - 1			// table index
 	add	\tmp2, \tbl, #PAGE_SIZE
-	orr	\tmp2, \tmp2, #MM_TYPE_PAGE_TABLE	
+	orr	\tmp2, \tmp2, #MM_TYPE_PAGE_TABLE
 	str	\tmp2, [\tbl, \tmp1, lsl #3]
 	add	\tbl, \tbl, #PAGE_SIZE					// next level table page
 	.endm
@@ -98,7 +100,7 @@ __create_page_tables:
 	bl 	memzero
 
 	adrp	x0, pg_dir
-	mov	x1, #VA_START 
+	mov	x1, #VA_START
 	create_pgd_entry x0, x1, x2, x3
 
 	/* Mapping kernel and init stack*/
@@ -108,7 +110,7 @@ __create_page_tables:
 	create_block_map x0, x1, x2, x3, MMU_FLAGS, x4
 
 	/* Mapping device memory*/
-	mov 	x1, #DEVICE_BASE					// start mapping from device base address 
+	mov 	x1, #DEVICE_BASE					// start mapping from device base address
 	ldr 	x2, =(VA_START + DEVICE_BASE)				// first virtual address
 	ldr	x3, =(VA_START + PHYS_MEMORY_SIZE - SECTION_SIZE)	// last virtual address
 	create_block_map x0, x1, x2, x3, MMU_DEVICE_FLAGS, x4

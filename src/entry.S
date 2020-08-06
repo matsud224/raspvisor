@@ -85,109 +85,100 @@
 .align	11
 .globl vectors
 vectors:
-	ventry	sync_invalid_el1t			// Synchronous EL2
-	ventry	irq_invalid_el1t			// IRQ EL2
-	ventry	fiq_invalid_el1t			// FIQ EL2
-	ventry	error_invalid_el1t			// Error EL2
+	ventry	sync_invalid_el2         // Synchronous EL2
+	ventry	irq_invalid_el2          // IRQ EL2
+	ventry	fiq_invalid_el2          // FIQ EL2
+	ventry	error_invalid_el2        // Error EL2
 
-	ventry	sync_invalid_el1h			// Synchronous EL2
-	ventry	el1_irq					// IRQ EL2
-	ventry	fiq_invalid_el1h			// FIQ EL2
-	ventry	error_invalid_el1h			// Error EL2
+	ventry	sync_invalid_el2         // Synchronous EL2
+	ventry	el2_irq                  // IRQ EL2
+	ventry	fiq_invalid_el2          // FIQ EL2
+	ventry	error_invalid_el2        // Error EL2
 
-	ventry	el0_sync				// Synchronous 64-bit EL0 or 1
-	ventry	el0_irq					// IRQ 64-bit EL0 or 1
-	ventry	fiq_invalid_el0_64			// FIQ 64-bit EL0 or 1
-	ventry	error_invalid_el0_64			// Error 64-bit EL0 or 1
+	ventry	el01_sync                // Synchronous 64-bit EL0 or 1
+	ventry	el01_irq                 // IRQ 64-bit EL0 or 1
+	ventry	fiq_invalid_el01_64			 // FIQ 64-bit EL0 or 1
+	ventry	error_invalid_el01_64    // Error 64-bit EL0 or 1
 
-	ventry	sync_invalid_el0_32			// Synchronous 32-bit EL0 or 1
-	ventry	irq_invalid_el0_32			// IRQ 32-bit EL0 or 1
-	ventry	fiq_invalid_el0_32			// FIQ 32-bit EL0 or 1
-	ventry	error_invalid_el0_32			// Error 32-bit EL0 or 1
+	ventry	sync_invalid_el01_32     // Synchronous 32-bit EL0 or 1
+	ventry	irq_invalid_el01_32      // IRQ 32-bit EL0 or 1
+	ventry	fiq_invalid_el01_32      // FIQ 32-bit EL0 or 1
+	ventry	error_invalid_el01_32    // Error 32-bit EL0 or 1
 
-sync_invalid_el1t:
-	handle_invalid_entry 1, SYNC_INVALID_EL1t
+sync_invalid_el2:
+	handle_invalid_entry 1, SYNC_INVALID_EL2
 
-irq_invalid_el1t:
-	handle_invalid_entry 1, IRQ_INVALID_EL1t
+irq_invalid_el2:
+	handle_invalid_entry 1, IRQ_INVALID_EL2
 
-fiq_invalid_el1t:
-	handle_invalid_entry 1, FIQ_INVALID_EL1t
+fiq_invalid_el2:
+	handle_invalid_entry 1, FIQ_INVALID_EL2
 
-error_invalid_el1t:
-	handle_invalid_entry 1, ERROR_INVALID_EL1t
+error_invalid_el2:
+	handle_invalid_entry 1, ERROR_INVALID_EL2
 
-sync_invalid_el1h:
-	handle_invalid_entry 1, SYNC_INVALID_EL1h
+fiq_invalid_el01_64:
+	handle_invalid_entry 0, FIQ_INVALID_EL01_64
 
-fiq_invalid_el1h:
-	handle_invalid_entry 1, FIQ_INVALID_EL1h
+error_invalid_el01_64:
+	handle_invalid_entry 0, ERROR_INVALID_EL01_64
 
-error_invalid_el1h:
-	handle_invalid_entry 1, ERROR_INVALID_EL1h
+sync_invalid_el01_32:
+	handle_invalid_entry  0, SYNC_INVALID_EL01_32
 
-fiq_invalid_el0_64:
-	handle_invalid_entry 0, FIQ_INVALID_EL0_64
+irq_invalid_el01_32:
+	handle_invalid_entry  0, IRQ_INVALID_EL01_32
 
-error_invalid_el0_64:
-	handle_invalid_entry 0, ERROR_INVALID_EL0_64
+fiq_invalid_el01_32:
+	handle_invalid_entry  0, FIQ_INVALID_EL01_32
 
-sync_invalid_el0_32:
-	handle_invalid_entry  0, SYNC_INVALID_EL0_32
-
-irq_invalid_el0_32:
-	handle_invalid_entry  0, IRQ_INVALID_EL0_32
-
-fiq_invalid_el0_32:
-	handle_invalid_entry  0, FIQ_INVALID_EL0_32
-
-error_invalid_el0_32:
-	handle_invalid_entry  0, ERROR_INVALID_EL0_32
+error_invalid_el01_32:
+	handle_invalid_entry  0, ERROR_INVALID_EL01_32
 
 
-el1_irq:
+el2_irq:
 	kernel_entry 1
 	bl	handle_irq
 	kernel_exit 1
 
-el0_irq:
+el01_irq:
 	kernel_entry 0
 	bl	handle_irq
 	kernel_exit 0
 
-el0_sync:
+el01_sync:
 	kernel_entry 0
 	mrs	x25, esr_el1				// read the syndrome register
 	lsr	x24, x25, #ESR_EL2_EC_SHIFT		// exception class
 	cmp	x24, #ESR_EL2_EC_HVC64			// HVC in 64-bit state
-	b.eq	el0_svc
+	b.eq	el01_hvc
 	cmp	x24, #ESR_EL2_EC_DABT_LOW		// data abort in EL0
-	b.eq	el0_da
+	b.eq	el01_da
 	handle_invalid_entry 0, SYNC_ERROR
 
-sc_nr	.req	x25					// number of system calls
-scno	.req	x26					// syscall number
-stbl	.req	x27					// syscall table pointer
+hc_nr	.req	x25					// number of hvcs
+hcno	.req	x26					// hvc number
+htbl	.req	x27					// hvc table pointer
 
-el0_svc:
-	adr	stbl, sys_call_table			// load syscall table pointer
-	uxtw	scno, w8				// syscall number in w8
-	mov	sc_nr, #__NR_syscalls
+el01_hvc:
+	adr	htbl, hvc_table			// load hvc table pointer
+	uxtw	hcno, w8				// hvc number in w8
+	mov	hc_nr, #__NR_hvcs
 	bl	enable_irq
-	cmp     scno, sc_nr                     	// check upper syscall limit
-	b.hs	ni_sys
+	cmp     hcno, hc_nr                     	// check upper syscall limit
+	b.hs	ni_hv
 
-	ldr	x16, [stbl, scno, lsl #3]		// address in the syscall table
-	blr	x16					// call sys_* routine
-	b	ret_from_syscall
-ni_sys:
-	handle_invalid_entry 0, SYSCALL_ERROR
-ret_from_syscall:
+	ldr	x16, [htbl, hcno, lsl #3]		// address in the syscall table
+	blr	x16					// call hvc_* routine
+	b	ret_from_hvc
+ni_hv:
+	handle_invalid_entry 0, HVC_ERROR
+ret_from_hvc:
 	bl	disable_irq
 	str	x0, [sp, #S_X0]				// returned x0
 	kernel_exit 0
 
-el0_da:
+el01_da:
 	bl	enable_irq
 	mrs	x0, far_el1
 	mrs	x1, esr_el1

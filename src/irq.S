@@ -7,6 +7,7 @@ irq_vector_init:
 .globl enable_irq
 enable_irq:
 	msr    daifclr, #2
+  msr    SPSel, #1
 	ret
 
 .globl disable_irq

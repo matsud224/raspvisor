@@ -13,4 +13,4 @@ void sys_exit(){
 	exit_process();
 }
 
-void * const sys_call_table[] = {sys_write, sys_exit};
+void * const hvc_table[] = {sys_write, sys_exit};

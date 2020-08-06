@@ -14,7 +14,7 @@
 #define PSR_MODE_EL3t	0x0000000c
 #define PSR_MODE_EL3h	0x0000000d
 
-int copy_process(unsigned long clone_flags, unsigned long fn, unsigned long arg);
+int create_task(unsigned long fn, unsigned long arg);
 int move_to_user_mode(unsigned long start, unsigned long size, unsigned long pc);
 struct pt_regs * task_pt_regs(struct task_struct *tsk);
 
@@ -23,6 +23,12 @@ struct pt_regs {
 	unsigned long sp;
 	unsigned long pc;
 	unsigned long pstate;
+	unsigned long sctlr_el1;
+	unsigned long spsr_el1;
+	unsigned long ttbr0_el1;
+	unsigned long ttbr1_el1;
+	unsigned long tcr_el1;
+	unsigned long mair_el1;
 };
 
 #endif

@@ -1,7 +1,7 @@
 #ifndef _USER_SYS_H
 #define _USER_SYS_H
 
-void call_hvc_write(char *buf);
+void call_hvc_notify(void);
 void call_hvc_exit(void);
 
 extern void user_delay(unsigned long);

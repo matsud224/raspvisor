@@ -1,5 +1,6 @@
 .globl irq_vector_init
 irq_vector_init:
+  msr    SPSel, #1
   adr x0, vectors       // load VBAR_EL2 with virtual
   msr vbar_el2, x0        // vector table address
   ret
@@ -7,7 +8,6 @@ irq_vector_init:
 .globl enable_irq
 enable_irq:
   msr    daifclr, #2
-  msr    SPSel, #1
   ret
 
 .globl disable_irq

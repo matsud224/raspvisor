@@ -5,7 +5,7 @@
 
 #ifndef __ASSEMBLER__
 
-void sys_write(char *buf);
+void sys_notify(void);
 
 #endif
 

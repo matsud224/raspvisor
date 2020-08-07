@@ -4,8 +4,8 @@
 #include "task.h"
 #include "utils.h"
 
-void sys_write(char *buf) { printf(buf); }
+void sys_notify() { printf("HVC!\r\n"); }
 
 void sys_exit() { exit_process(); }
 
-void *const hvc_table[] = {sys_write, sys_exit};
+void *const hvc_table[] = {sys_notify, sys_exit};

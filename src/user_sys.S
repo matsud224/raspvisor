@@ -1,6 +1,6 @@
 .section ".text.user"
 
-.set HVC_WRITE_NUMBER, 0    // hvc numbers
+.set HVC_NOTIFY_NUMBER, 0    // hvc numbers
 .set HVC_EXIT_NUMBER, 1
 
 .globl user_delay
@@ -9,9 +9,9 @@ user_delay:
   bne user_delay
   ret
 
-.globl call_hvc_write
-call_hvc_write:
-  mov w8, #HVC_WRITE_NUMBER
+.globl call_hvc_notify
+call_hvc_notify:
+  mov w8, #HVC_NOTIFY_NUMBER
   hvc #0
   ret
 

@@ -26,7 +26,7 @@ set_stage2_pgd:
   lsl x1, x1, #48
   orr x0, x0, x1         // set VMID
   msr vttbr_el2, x0
-  tlbi vmalle1is
+  //tlbi vmalls2is
     DSB ISH              // ensure completion of TLB invalidation
   isb
   ret

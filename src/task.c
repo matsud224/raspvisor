@@ -57,6 +57,7 @@ static void prepare_initial_sysregs(void) {
 
 int create_vmtask(unsigned long arg)
 {
+  static int nextid = 0;
 
 	preempt_disable();
 	struct task_struct *p;
@@ -75,6 +76,7 @@ int create_vmtask(unsigned long arg)
 	p->state = TASK_RUNNING;
 	p->counter = p->priority;
 	p->preempt_count = 1; //disable preemtion until schedule_tail
+	p->id = nextid++;
 
   prepare_initial_sysregs();
   memcpy((unsigned long)&p->cpu_sysregs, (unsigned long)&initial_sysregs, sizeof(struct cpu_sysregs));

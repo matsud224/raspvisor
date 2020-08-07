@@ -56,7 +56,7 @@ void schedule(void)
 }
 
 void set_cpu_sysregs(struct task_struct *task) {
-  set_stage2_pgd(task->mm.pgd);
+  set_stage2_pgd(task->mm.pgd, task->id);
   _set_sysregs(&(task->cpu_sysregs));
 }
 

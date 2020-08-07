@@ -37,14 +37,14 @@ void free_page(unsigned long p){
 	mem_map[(p - LOW_MEMORY) / PAGE_SIZE] = 0;
 }
 
-void map_table_entry(unsigned long *pte, unsigned long va, unsigned long pa) {
+void map_stage2_table_entry(unsigned long *pte, unsigned long va, unsigned long pa) {
 	unsigned long index = va >> PAGE_SHIFT;
 	index = index & (PTRS_PER_TABLE - 1);
-	unsigned long entry = pa | MMU_PTE_FLAGS;
+	unsigned long entry = pa | MMU_STAGE2_PAGE_FLAGS;
 	pte[index] = entry;
 }
 
-unsigned long map_table(unsigned long *table, unsigned long shift, unsigned long va, int* new_table) {
+unsigned long map_stage2_table(unsigned long *table, unsigned long shift, unsigned long va, int* new_table) {
 	unsigned long index = va >> shift;
 	index = index & (PTRS_PER_TABLE - 1);
 	if (!table[index]){
@@ -67,34 +67,23 @@ void map_stage2_page(struct task_struct *task, unsigned long va, unsigned long p
 	}
 	pgd = task->mm.pgd;
 	int new_table;
-	unsigned long pud = map_table((unsigned long *)(pgd + VA_START), PGD_SHIFT, va, &new_table);
+	unsigned long pud = map_stage2_table((unsigned long *)(pgd + VA_START), PGD_SHIFT, va, &new_table);
 	if (new_table) {
 		task->mm.kernel_pages[++task->mm.kernel_pages_count] = pud;
 	}
-	unsigned long pmd = map_table((unsigned long *)(pud + VA_START) , PUD_SHIFT, va, &new_table);
+	unsigned long pmd = map_stage2_table((unsigned long *)(pud + VA_START) , PUD_SHIFT, va, &new_table);
 	if (new_table) {
 		task->mm.kernel_pages[++task->mm.kernel_pages_count] = pmd;
 	}
-	unsigned long pte = map_table((unsigned long *)(pmd + VA_START), PMD_SHIFT, va, &new_table);
+	unsigned long pte = map_stage2_table((unsigned long *)(pmd + VA_START), PMD_SHIFT, va, &new_table);
 	if (new_table) {
 		task->mm.kernel_pages[++task->mm.kernel_pages_count] = pte;
 	}
-	map_table_entry((unsigned long *)(pte + VA_START), va, page);
+	map_stage2_table_entry((unsigned long *)(pte + VA_START), va, page);
 	struct user_page p = {page, va};
 	task->mm.user_pages[task->mm.user_pages_count++] = p;
 }
 
-int copy_virt_memory(struct task_struct *dst) {
-	struct task_struct* src = current;
-	for (int i = 0; i < src->mm.user_pages_count; i++) {
-		unsigned long kernel_va = allocate_user_page(dst, src->mm.user_pages[i].virt_addr);
-		if( kernel_va == 0) {
-			return -1;
-		}
-		memcpy(kernel_va, src->mm.user_pages[i].virt_addr, PAGE_SIZE);
-	}
-	return 0;
-}
 
 static int ind = 1;
 

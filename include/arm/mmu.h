@@ -6,6 +6,7 @@
 #define MM_TYPE_BLOCK			0x1
 #define MM_ACCESS			(0x1 << 10)
 #define MM_ACCESS_PERMISSION		(0x01 << 6)
+#define MM_nG		    	(0x0 << 11)
 
 /*
  * Memory region attributes:
@@ -21,9 +22,12 @@
 #define MT_NORMAL_NC_FLAGS  		0x44
 #define MAIR_VALUE			(MT_DEVICE_nGnRnE_FLAGS << (8 * MT_DEVICE_nGnRnE)) | (MT_NORMAL_NC_FLAGS << (8 * MT_NORMAL_NC))
 
-#define MMU_FLAGS	 		(MM_TYPE_BLOCK | (MT_NORMAL_NC << 2) | MM_ACCESS)
-#define MMU_DEVICE_FLAGS		(MM_TYPE_BLOCK | (MT_DEVICE_nGnRnE << 2) | MM_ACCESS)
-#define MMU_PTE_FLAGS			(MM_TYPE_PAGE | (MT_NORMAL_NC << 2) | MM_ACCESS | MM_ACCESS_PERMISSION)
+#define MMU_FLAGS	 		(MM_TYPE_BLOCK | (MT_NORMAL_NC << 2) | MM_nG | MM_ACCESS)
+#define MMU_DEVICE_FLAGS		(MM_TYPE_BLOCK | (MT_DEVICE_nGnRnE << 2) | MM_nG | MM_ACCESS)
+
+#define MM_STAGE2_ACCESS       (1 << 10)
+#define MM_STAGE2_MEMATTR      (1 << 0)
+#define MMU_STAGE2_PAGE_FLAGS	 (MM_TYPE_PAGE | MM_STAGE2_ACCESS | MM_STAGE2_MEMATTR)
 
 #define TCR_T0SZ			(64 - 48)
 #define TCR_TG0_4K			(0 << 14)

@@ -5,12 +5,13 @@
 // SCTLR_EL2, System Control Register (EL2)
 // ***************************************
 
+#define SCTLR_EE                        (0 << 25)
 #define SCTLR_I_CACHE_DISABLED          (0 << 12)
 #define SCTLR_D_CACHE_DISABLED          (0 << 2)
 #define SCTLR_MMU_DISABLED              (0 << 0)
 #define SCTLR_MMU_ENABLED               (1 << 0)
 
-#define SCTLR_VALUE_MMU_DISABLED	(SCTLR_I_CACHE_DISABLED | SCTLR_D_CACHE_DISABLED | SCTLR_MMU_DISABLED)
+#define SCTLR_VALUE_MMU_DISABLED	(SCTLR_EE | SCTLR_I_CACHE_DISABLED | SCTLR_D_CACHE_DISABLED | SCTLR_MMU_DISABLED)
 
 // ***************************************
 // HCR_EL2, Hypervisor Configuration Register (EL2)
@@ -23,7 +24,9 @@
 #define HCR_AMO           (1 << 5)  // routing to EL2
 #define HCR_IMO           (1 << 4)  // routing to EL2
 #define HCR_FMO           (1 << 3)  // routing to EL2
-#define HCR_VALUE			(HCR_E2H | HCR_RW | HCR_TGE | HCR_TWI | HCR_AMO | HCR_IMO | HCR_FMO)
+#define HCR_SWIO          (1 << 1)
+#define HCR_VM            (1 << 0)  // stage 2 translation enable
+#define HCR_VALUE			(HCR_E2H | HCR_RW | HCR_TGE | HCR_TWI | HCR_AMO | HCR_IMO | HCR_FMO | HCR_SWIO | HCR_VM)
 
 // ***************************************
 // SCR_EL3, Secure Configuration Register (EL3)

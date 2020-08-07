@@ -68,6 +68,7 @@ struct task_struct {
 	long counter;
 	long priority;
 	long preempt_count;
+  long id;
 	unsigned long flags;
 	struct mm_struct mm;
   struct cpu_sysregs cpu_sysregs;
@@ -85,8 +86,9 @@ extern void exit_process(void);
 
 #define INIT_TASK \
 /*cpu_context*/ { { 0,0,0,0,0,0,0,0,0,0,0,0,0}, \
-/* state etc */	 0,0,15, 0, PF_KTHREAD, \
-/* mm */ { 0, 0, {{0}}, 0, {0}} \
+/* state etc */	 0,0,15, 0, 0, PF_KTHREAD, \
+/* mm */ { 0, 0, {{0}}, 0, {0}}, \
+/*cpu_sysregs*/ { 0,0,0,0,0,0}, \
 }
 #endif
 #endif

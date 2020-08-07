@@ -78,6 +78,7 @@ extern void schedule(void);
 extern void timer_tick(void);
 extern void preempt_disable(void);
 extern void preempt_enable(void);
+extern void set_cpu_sysregs(struct task_struct *task);
 extern void switch_to(struct task_struct* next);
 extern void cpu_switch_to(struct task_struct* prev, struct task_struct* next);
 extern void exit_process(void);

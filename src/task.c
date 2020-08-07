@@ -24,7 +24,7 @@ static int prepare_el1_switching(unsigned long start, unsigned long size, unsign
 		return -1;
 	}
 	memcpy(code_page, start, size);
-	set_stage2_pgd(current->mm.pgd);
+	set_cpu_sysregs(current);
 	return 0;
 }
 
@@ -43,9 +43,20 @@ static void prepare_vmtask(unsigned long arg){
 
 static struct cpu_sysregs initial_sysregs;
 
+static void prepare_initial_sysregs(void) {
+  static int is_first_call = 0;
+
+  if (!is_first_call)
+    return;
+
+  _get_sysregs(&initial_sysregs);
+	initial_sysregs.sctlr_el1 &= ~1;  // surely disable MMU
+
+  is_first_call = 1;
+}
+
 int create_vmtask(unsigned long arg)
 {
-  static int is_first = 0;
 
 	preempt_disable();
 	struct task_struct *p;
@@ -65,9 +76,7 @@ int create_vmtask(unsigned long arg)
 	p->counter = p->priority;
 	p->preempt_count = 1; //disable preemtion until schedule_tail
 
-  if (is_first) {
-    get_sysregs(&initial_sysregs);
-  }
+  prepare_initial_sysregs();
   memcpy((unsigned long)&p->cpu_sysregs, (unsigned long)&initial_sysregs, sizeof(struct cpu_sysregs));
 
 	p->cpu_context.pc = (unsigned long)switch_from_kthread;

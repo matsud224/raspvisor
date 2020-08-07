@@ -57,7 +57,7 @@ void schedule(void)
 
 void set_cpu_sysregs(struct task_struct *task) {
   set_stage2_pgd(task->mm.pgd);
-  set_sysregs(&(task->cpu_sysregs));
+  _set_sysregs(&(task->cpu_sysregs));
 }
 
 void switch_to(struct task_struct * next)
@@ -66,7 +66,7 @@ void switch_to(struct task_struct * next)
 		return;
 	struct task_struct * prev = current;
 	current = next;
-	set_stage2_pgd(next->mm.pgd);
+	set_cpu_sysregs(next);
 	cpu_switch_to(prev, next);
 }
 

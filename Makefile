@@ -6,8 +6,10 @@ ASMOPS = -Iinclude
 BUILD_DIR = build
 SRC_DIR = src
 
+.PHONY: all
 all : kernel8.img
 
+.PHONY: clean
 clean :
 	rm -rf $(BUILD_DIR) *.img
 
@@ -30,9 +32,14 @@ kernel8.img: $(SRC_DIR)/linker.ld $(OBJ_FILES)
 	$(ARMGNU)-ld -T $(SRC_DIR)/linker.ld -o $(BUILD_DIR)/kernel8.elf  $(OBJ_FILES)
 	$(ARMGNU)-objcopy $(BUILD_DIR)/kernel8.elf -O binary kernel8.img
 
+.PHONY: install
 install: kernel8.img
 	rm -rf $(SD_BOOT_DIR)/*.img
 	cp src/config.txt $(SD_BOOT_DIR)
 	cp kernel8.img $(SD_BOOT_DIR)
 	-umount $(SD_BOOT_DIR)
 	-umount $(SD_ROOTFS_DIR)
+
+.PHONY: serial
+serial:
+	cu -s 115200 -l /dev/ttyUSB0

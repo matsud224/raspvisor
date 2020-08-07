@@ -1,13 +1,13 @@
 #ifndef _SCHED_H
 #define _SCHED_H
 
-#define THREAD_CPU_CONTEXT			0 		// offset of cpu_context in task_struct 
+#define THREAD_CPU_CONTEXT			0 		// offset of cpu_context in task_struct
 
 #ifndef __ASSEMBLER__
 
 #define THREAD_SIZE				4096
 
-#define NR_TASKS				64 
+#define NR_TASKS				64
 
 #define FIRST_TASK task[0]
 #define LAST_TASK task[NR_TASKS-1]
@@ -15,7 +15,7 @@
 #define TASK_RUNNING				0
 #define TASK_ZOMBIE				1
 
-#define PF_KTHREAD				0x00000002	
+#define PF_KTHREAD				0x00000002
 
 
 extern struct task_struct *current;
@@ -38,7 +38,7 @@ struct cpu_context {
 	unsigned long pc;
 };
 
-#define MAX_PROCESS_PAGES			16	
+#define MAX_PROCESS_PAGES			16
 
 struct user_page {
 	unsigned long phys_addr;
@@ -55,7 +55,7 @@ struct mm_struct {
 
 struct task_struct {
 	struct cpu_context cpu_context;
-	long state;	
+	long state;
 	long counter;
 	long priority;
 	long preempt_count;

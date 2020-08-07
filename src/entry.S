@@ -181,11 +181,13 @@ el01_da:
 	bl disable_irq
 	kernel_exit
 
-.globl ret_from_fork
-ret_from_fork:
+.globl switch_from_kthread
+switch_from_kthread:
 	bl	schedule_tail
 	mov	x0, x20
 	blr	x19
+  bl disable_irq
+  kernel_exit
 
 .globl err_hang
 err_hang: b err_hang

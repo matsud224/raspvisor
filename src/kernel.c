@@ -12,18 +12,6 @@
 #include "user.h"
 
 
-void kernel_process(){
-	printf("Kernel process started. EL %d\r\n", get_el());
-	unsigned long begin = (unsigned long)&user_begin;
-	unsigned long end = (unsigned long)&user_end;
-	unsigned long process = (unsigned long)&user_process;
-	int err = move_to_user_mode(begin, end - begin, process - begin);
-	if (err < 0){
-		printf("Error while moving process to user mode\n\r");
-	}
-}
-
-
 void kernel_main()
 {
 	uart_init();
@@ -34,7 +22,7 @@ void kernel_main()
 	enable_interrupt_controller();
 	enable_irq();
 
-	int res = create_task((unsigned long)&kernel_process, 0);
+	int res = create_vmtask(0);
 	if (res < 0) {
 		printf("error while starting kernel process");
 		return;

@@ -16,7 +16,7 @@ unsigned long allocate_user_page(struct task_struct *task, unsigned long va) {
 	if (page == 0) {
 		return 0;
 	}
-	map_page(task, va, page);
+	map_stage2_page(task, va, page);
 	return page + VA_START;
 }
 
@@ -40,7 +40,7 @@ void free_page(unsigned long p){
 void map_table_entry(unsigned long *pte, unsigned long va, unsigned long pa) {
 	unsigned long index = va >> PAGE_SHIFT;
 	index = index & (PTRS_PER_TABLE - 1);
-	unsigned long entry = pa | MMU_PTE_FLAGS; 
+	unsigned long entry = pa | MMU_PTE_FLAGS;
 	pte[index] = entry;
 }
 
@@ -59,7 +59,7 @@ unsigned long map_table(unsigned long *table, unsigned long shift, unsigned long
 	return table[index] & PAGE_MASK;
 }
 
-void map_page(struct task_struct *task, unsigned long va, unsigned long page){
+void map_stage2_page(struct task_struct *task, unsigned long va, unsigned long page){
 	unsigned long pgd;
 	if (!task->mm.pgd) {
 		task->mm.pgd = get_free_page();
@@ -98,14 +98,19 @@ int copy_virt_memory(struct task_struct *dst) {
 
 static int ind = 1;
 
+#define ISS_ABORT_S1PTW (1 << 7)
+
+#define ISS_ABORT_IFSC        0b111111
+#define IFSC_TRANS_FAULT_EL1  0b000101
+
 int do_mem_abort(unsigned long addr, unsigned long esr) {
-	unsigned long dfs = (esr & 0b111111);
-	if ((dfs & 0b111100) == 0b100) {
+	if ((esr & ISS_ABORT_S1PTW) == ISS_ABORT_S1PTW) {
+    // stage 2 translation fault
 		unsigned long page = get_free_page();
 		if (page == 0) {
 			return -1;
 		}
-		map_page(current, addr & PAGE_MASK, page);
+		map_stage2_page(current, addr & PAGE_MASK, page);
 		ind++;
 		if (ind > 2){
 			return -1;

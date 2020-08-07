@@ -23,7 +23,7 @@
 
 #ifndef __ASSEMBLER__
 
-void ret_from_fork(void);
+void switch_from_kthread(void);
 
 #endif
 

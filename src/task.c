@@ -41,8 +41,12 @@ static void prepare_vmtask(unsigned long arg){
   // switch_from_kthead() will be called and switched to EL1
 }
 
+static struct cpu_sysregs initial_sysregs;
+
 int create_vmtask(unsigned long arg)
 {
+  static int is_first = 0;
+
 	preempt_disable();
 	struct task_struct *p;
 
@@ -60,6 +64,11 @@ int create_vmtask(unsigned long arg)
 	p->state = TASK_RUNNING;
 	p->counter = p->priority;
 	p->preempt_count = 1; //disable preemtion until schedule_tail
+
+  if (is_first) {
+    get_sysregs(&initial_sysregs);
+  }
+  memcpy((unsigned long)&p->cpu_sysregs, (unsigned long)&initial_sysregs, sizeof(struct cpu_sysregs));
 
 	p->cpu_context.pc = (unsigned long)switch_from_kthread;
 	p->cpu_context.sp = (unsigned long)childregs;

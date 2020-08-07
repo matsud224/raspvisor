@@ -21,12 +21,6 @@ struct pt_regs {
 	unsigned long sp;
 	unsigned long pc;
 	unsigned long pstate;
-	unsigned long sctlr_el1;
-	unsigned long spsr_el1;
-	unsigned long ttbr0_el1;
-	unsigned long ttbr1_el1;
-	unsigned long tcr_el1;
-	unsigned long mair_el1;
 };
 
 #endif

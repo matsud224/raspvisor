@@ -38,6 +38,15 @@ struct cpu_context {
 	unsigned long pc;
 };
 
+struct cpu_sysregs {
+	unsigned long sctlr_el1;
+	unsigned long spsr_el1;
+	unsigned long ttbr0_el1;
+	unsigned long ttbr1_el1;
+	unsigned long tcr_el1;
+	unsigned long mair_el1;
+};
+
 #define MAX_PROCESS_PAGES			16
 
 struct user_page {
@@ -61,6 +70,7 @@ struct task_struct {
 	long preempt_count;
 	unsigned long flags;
 	struct mm_struct mm;
+  struct cpu_sysregs cpu_sysregs;
 };
 
 extern void sched_init(void);

@@ -27,3 +27,29 @@ set_stage2_pgd:
   	DSB ISH              // ensure completion of TLB invalidation
 	isb
 	ret
+
+.globl set_sysregs
+set_sysregs:
+  ldp x1, x2, [x0], #16
+	msr sctlr_el1, x1
+	msr spsr_el1, x2
+  ldp x1, x2, [x0], #16
+	msr ttbr0_el1, x1
+	msr ttbr1_el1, x2
+  ldp x1, x2, [x0], #16
+	msr tcr_el1, x1
+	msr mair_el1, x2
+  ret
+
+.globl get_sysregs
+get_sysregs:
+  ldp x1, x2, [x0], #16
+	msr sctlr_el1, x1
+	msr spsr_el1, x2
+  ldp x1, x2, [x0], #16
+	msr ttbr0_el1, x1
+	msr ttbr1_el1, x2
+  ldp x1, x2, [x0], #16
+	msr tcr_el1, x1
+	msr mair_el1, x2
+  ret

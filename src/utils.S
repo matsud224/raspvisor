@@ -22,13 +22,18 @@ delay:
 
 .globl set_stage2_pgd
 set_stage2_pgd:
+  // prepare VMID
   and x1, x1, #0xff
   lsl x1, x1, #48
-  orr x0, x0, x1         // set VMID
-  msr vttbr_el2, x0
-  //tlbi vmalls2is
-    DSB ISH              // ensure completion of TLB invalidation
+  // set VMID
+  orr x0, x0, x1
+  // TLB invalidate
+  dsb ishst
+  tlbi vmalls12e1is
+  dsb ish              // ensure completion of TLB invalidation
   isb
+  // set address of PGD
+  msr vttbr_el2, x0
   ret
 
 .globl _set_sysregs
@@ -42,6 +47,7 @@ _set_sysregs:
   ldp x1, x2, [x0], #16
   msr tcr_el1, x1
   msr mair_el1, x2
+  isb
   ret
 
 .globl _get_sysregs

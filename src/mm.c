@@ -87,7 +87,6 @@ void map_stage2_page(struct task_struct *task, unsigned long va,
   task->mm.user_pages[task->mm.user_pages_count++] = p;
 }
 
-static int ind = 1;
 
 #define ISS_ABORT_S1PTW (1 << 7)
 
@@ -102,10 +101,6 @@ int do_mem_abort(unsigned long addr, unsigned long esr) {
       return -1;
     }
     map_stage2_page(current, addr & PAGE_MASK, page);
-    ind++;
-    if (ind > 2) {
-      return -1;
-    }
     return 0;
   }
   return -1;

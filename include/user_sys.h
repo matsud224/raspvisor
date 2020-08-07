@@ -1,11 +1,11 @@
-#ifndef	_USER_SYS_H
-#define	_USER_SYS_H
+#ifndef _USER_SYS_H
+#define _USER_SYS_H
 
-void call_hvc_write(char * buf);
+void call_hvc_write(char *buf);
 void call_hvc_exit(void);
 
-extern void user_delay ( unsigned long);
-extern unsigned long get_sp ( void );
-extern unsigned long get_pc ( void );
+extern void user_delay(unsigned long);
+extern unsigned long get_sp(void);
+extern unsigned long get_pc(void);
 
-#endif  /*_USER_SYS_H */
+#endif /*_USER_SYS_H */

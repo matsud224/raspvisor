@@ -50,16 +50,16 @@ many embedded systems.
 To use the printf you need to supply your own character output function,
 something like :
 
-	void putc ( void* p, char c)
-		{
-		while (!SERIAL_PORT_EMPTY) ;
-		SERIAL_PORT_TX_REGISTER = c;
-		}
+        void putc ( void* p, char c)
+                {
+                while (!SERIAL_PORT_EMPTY) ;
+                SERIAL_PORT_TX_REGISTER = c;
+                }
 
 Before you can call printf you need to initialize it to use your
 character output function with something like:
 
-	init_printf(NULL,putc);
+        init_printf(NULL,putc);
 
 Notice the 'NULL' in 'init_printf' and the parameter 'void* p' in 'putc',
 the NULL (or any pointer) you pass into the 'init_printf' will eventually be
@@ -87,18 +87,17 @@ For further details see source code.
 regs Kusti, 23.10.2004
 */
 
-
 #ifndef __TFP_PRINTF__
 #define __TFP_PRINTF__
 
 #include <stdarg.h>
 
-void init_printf(void* putp,void (*putf) (void*,char));
+void init_printf(void *putp, void (*putf)(void *, char));
 
 void tfp_printf(char *fmt, ...);
-void tfp_sprintf(char* s,char *fmt, ...);
+void tfp_sprintf(char *s, char *fmt, ...);
 
-void tfp_format(void* putp,void (*putf) (void*,char),char *fmt, va_list va);
+void tfp_format(void *putp, void (*putf)(void *, char), char *fmt, va_list va);
 
 #define printf tfp_printf
 #define sprintf tfp_sprintf

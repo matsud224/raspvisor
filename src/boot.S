@@ -58,7 +58,7 @@ el2_entry:
   ldr x0, =(MAIR_VALUE)
   msr mair_el2, x0
 
-  ldr x2, =kernel_main
+  ldr x2, =hypervisor_main
 
   mov x0, #SCTLR_MMU_ENABLED
   msr sctlr_el2, x0

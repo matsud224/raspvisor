@@ -68,7 +68,7 @@ struct task_struct {
 	long counter;
 	long priority;
 	long preempt_count;
-  long id;
+  long id;  // used as VMID
 	unsigned long flags;
 	struct mm_struct mm;
   struct cpu_sysregs cpu_sysregs;

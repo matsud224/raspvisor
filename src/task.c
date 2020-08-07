@@ -42,7 +42,7 @@ static void prepare_vmtask(unsigned long arg) {
 static struct cpu_sysregs initial_sysregs;
 
 static void prepare_initial_sysregs(void) {
-  static int is_first_call = 0;
+  static int is_first_call = 1;
 
   if (!is_first_call)
     return;
@@ -50,12 +50,10 @@ static void prepare_initial_sysregs(void) {
   _get_sysregs(&initial_sysregs);
   initial_sysregs.sctlr_el1 &= ~1; // surely disable MMU
 
-  is_first_call = 1;
+  is_first_call = 0;
 }
 
 int create_vmtask(unsigned long arg) {
-  static int nextid = 0;
-
   preempt_disable();
   struct task_struct *p;
 
@@ -73,7 +71,6 @@ int create_vmtask(unsigned long arg) {
   p->state = TASK_RUNNING;
   p->counter = p->priority;
   p->preempt_count = 1; // disable preemtion until schedule_tail
-  p->id = nextid++;
 
   prepare_initial_sysregs();
   memcpy((unsigned long)&p->cpu_sysregs, (unsigned long)&initial_sysregs,
@@ -83,6 +80,7 @@ int create_vmtask(unsigned long arg) {
   p->cpu_context.sp = (unsigned long)childregs;
   int pid = nr_tasks++;
   task[pid] = p;
+  p->pid = pid;
 
   preempt_enable();
   return pid;

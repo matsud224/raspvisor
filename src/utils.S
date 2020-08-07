@@ -46,13 +46,13 @@ _set_sysregs:
 
 .globl _get_sysregs
 _get_sysregs:
-  mrs sctlr_el1, x1
-  mrs spsr_el1, x2
+  mrs x1, sctlr_el1
+  mrs x2, spsr_el1
   stp x1, x2, [x0], #16
-  mrs ttbr0_el1, x1
-  mrs ttbr1_el1, x2
+  mrs x1, ttbr0_el1
+  mrs x2, ttbr1_el1
   stp x1, x2, [x0], #16
-  mrs tcr_el1, x1
-  mrs mair_el1, x2
+  mrs x1, tcr_el1
+  mrs x2, mair_el1
   stp x1, x2, [x0], #16
   ret

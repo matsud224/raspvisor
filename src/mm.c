@@ -1,9 +1,7 @@
 #include "mm.h"
 #include "arm/mmu.h"
 
-static unsigned short mem_map[PAGING_PAGES] = {
-    0,
-};
+static unsigned short mem_map[PAGING_PAGES] = { 0 };
 
 unsigned long allocate_kernel_page() {
   unsigned long page = get_free_page();

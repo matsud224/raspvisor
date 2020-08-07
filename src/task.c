@@ -27,13 +27,13 @@ static int prepare_el1_switching(unsigned long start, unsigned long size,
 }
 
 static void prepare_vmtask(unsigned long arg) {
-  printf("vmtask: arg=%d, EL=%d\r\n", arg, get_el());
+  printf("task: arg=%d, EL=%d\r\n", arg, get_el());
   unsigned long begin = (unsigned long)&user_begin;
   unsigned long end = (unsigned long)&user_end;
   unsigned long process = (unsigned long)&user_process;
   int err = prepare_el1_switching(begin, end - begin, process - begin);
   if (err < 0) {
-    printf("Error while moving process to user mode\n\r");
+    printf("task: prepare_el1_switching() failed.\n\r");
   }
 
   // switch_from_kthead() will be called and switched to EL1

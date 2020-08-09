@@ -68,26 +68,38 @@ const char *sync_error_reasons[] = {
 
 #define ESR_EL2_EC_SHIFT     26
 
-#define ESR_EL2_EC_TRAP_WFx  1
-#define ESR_EL2_EC_HVC64     22
-#define ESR_EL2_EC_DABT_LOW  36
+#define ESR_EL2_EC_TRAP_WFX       1
+#define ESR_EL2_EC_TRAP_FP_REG    7
+#define ESR_EL2_EC_HVC64          22
+#define ESR_EL2_EC_TRAP_SYSTEM    24
+#define ESR_EL2_EC_TRAP_SVE       25
+#define ESR_EL2_EC_DABT_LOW       36
 
 void handle_sync_exception(unsigned long esr, unsigned long elr,
     unsigned long far, unsigned long hvc_nr) {
   int eclass = (esr >> ESR_EL2_EC_SHIFT) & 0x3f;
 
   switch (eclass) {
-  case ESR_EL2_EC_TRAP_WFx:
-    printf("WFx!\r\n");
+  case ESR_EL2_EC_TRAP_WFX:
+    printf("TRAP_WFX\r\n");
+    break;
+  case ESR_EL2_EC_TRAP_FP_REG:
+    printf("TRAP_FP_REG\r\n");
     break;
   case ESR_EL2_EC_HVC64:
     printf("HVC(%d)!\r\n", hvc_nr);
     break;
+  case ESR_EL2_EC_TRAP_SYSTEM:
+    printf("TRAP_SYSTEM\r\n");
+    break;
+  case ESR_EL2_EC_TRAP_SVE:
+    printf("TRAP_SVE\r\n");
+    break;
   case ESR_EL2_EC_DABT_LOW:
-
+    printf("DABT_LOW\r\n");
     break;
   default:
-    printf("Uncaught sync exception: %s, esr: %x, address: %x\r\n",
+    printf("Uncaught synchronous exception:\r\n%s\r\nesr: %x, address: %x\r\n",
         sync_error_reasons[eclass], esr, elr);
     break;
   }

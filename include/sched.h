@@ -54,7 +54,7 @@ struct user_page {
 };
 
 struct mm_struct {
-  unsigned long pgd;
+  unsigned long first_table;
   int user_pages_count;
   struct user_page user_pages[MAX_PROCESS_PAGES];
   int kernel_pages_count;

@@ -18,28 +18,24 @@ static int prepare_el1_switching(unsigned long start, unsigned long size,
   regs->pc = pc;
   regs->sp = 2 * PAGE_SIZE;
 
-  unsigned long code_page = allocate_user_page(current, 0);
+  unsigned long code_page = allocate_user_page(current, 0x80000);
   if (code_page == 0) {
     return -1;
   }
   memcpy(code_page, start, size);
   set_cpu_sysregs(current);
-  unsigned long do_at(unsigned long);
-  unsigned long _get_id_aa64mmfr0_el1(void);
-  printf("psize=%x\r\n", _get_id_aa64mmfr0_el1()&0xf);
-  printf("do_at: %x\r\n", do_at(0));
-  while(0);
   return 0;
 }
 
 static void prepare_vmtask(unsigned long arg) {
   printf("task: arg=%d, EL=%d\r\n", arg, get_el());
   unsigned int insns[] = {
+    0xd503207f,  // wfi
     0x52800008,  // mov w8, #0
     0xd4000002,  // hvc #0
     0xd65f03c0,  // ret
   };
-  int err = prepare_el1_switching((unsigned long)insns, (unsigned long)(sizeof(insns)), 0);
+  int err = prepare_el1_switching((unsigned long)insns, (unsigned long)(sizeof(insns)), 0x80000);
   if (err < 0) {
     printf("task: prepare_el1_switching() failed.\n\r");
   }

@@ -61,29 +61,24 @@ unsigned long map_stage2_table(unsigned long *table, unsigned long shift,
 
 void map_stage2_page(struct task_struct *task, unsigned long va,
                      unsigned long page) {
-  unsigned long pgd;
-  if (!task->mm.pgd) {
-    task->mm.pgd = get_free_page();
-    task->mm.kernel_pages[++task->mm.kernel_pages_count] = task->mm.pgd;
+  unsigned long lv1_table;
+  if (!task->mm.first_table) {
+    task->mm.first_table = get_free_page();
+    task->mm.kernel_pages[++task->mm.kernel_pages_count] = task->mm.first_table;
   }
-  pgd = task->mm.pgd;
+  lv1_table = task->mm.first_table;
   int new_table;
-  unsigned long pud = map_stage2_table((unsigned long *)(pgd + VA_START),
-                                       PGD_SHIFT, va, &new_table);
+  unsigned long lv2_table = map_stage2_table((unsigned long *)(lv1_table + VA_START),
+                                       LV1_SHIFT, va, &new_table);
   if (new_table) {
-    task->mm.kernel_pages[++task->mm.kernel_pages_count] = pud;
+    task->mm.kernel_pages[++task->mm.kernel_pages_count] = lv2_table;
   }
-  unsigned long pmd = map_stage2_table((unsigned long *)(pud + VA_START),
-                                       PUD_SHIFT, va, &new_table);
+  unsigned long lv3_table = map_stage2_table((unsigned long *)(lv2_table + VA_START),
+                                       LV2_SHIFT, va, &new_table);
   if (new_table) {
-    task->mm.kernel_pages[++task->mm.kernel_pages_count] = pmd;
+    task->mm.kernel_pages[++task->mm.kernel_pages_count] = lv3_table;
   }
-  unsigned long pte = map_stage2_table((unsigned long *)(pmd + VA_START),
-                                       PMD_SHIFT, va, &new_table);
-  if (new_table) {
-    task->mm.kernel_pages[++task->mm.kernel_pages_count] = pte;
-  }
-  map_stage2_table_entry((unsigned long *)(pte + VA_START), va, page);
+  map_stage2_table_entry((unsigned long *)(lv3_table + VA_START), va, page);
   struct user_page p = {page, va};
   task->mm.user_pages[task->mm.user_pages_count++] = p;
 }

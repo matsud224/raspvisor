@@ -106,10 +106,6 @@ void show_uncaught_sync_exception_message(int type, unsigned long esr,
   printf("%s, ESR: %x, address: %x\r\nreason: %s\r\n",
       entry_error_messages[type], esr,
       address, sync_error_reasons[eclass]);
-  _get_sysregs(&sysregs);
-  unsigned long _get_sctlr_el1(void);
-  unsigned long _get_spsr_el2(void);
-  printf("SCTLR_EL1 = %x, SPSR_EL2 = %x\r\n", _get_sctlr_el1(), _get_spsr_el2());
 }
 
 

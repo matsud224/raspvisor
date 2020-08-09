@@ -151,6 +151,9 @@ el01_sync:
 switch_from_kthread:
   bl  schedule_tail
   mov x0, x20
+  mov x1, x21
+  mov x3, x22
+  mov x4, x23
   blr x19
   bl disable_irq
   kernel_exit

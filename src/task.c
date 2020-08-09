@@ -10,33 +10,18 @@ static struct pt_regs *task_pt_regs(struct task_struct *tsk) {
   return (struct pt_regs *)p;
 }
 
-static int prepare_el1_switching(unsigned long start, unsigned long size,
-                                 unsigned long pc) {
-  struct pt_regs *regs = task_pt_regs(current);
-  regs->pstate = PSR_MODE_EL1h;
-  regs->pc = pc;
-  regs->sp = 2 * PAGE_SIZE;
-
-  unsigned long code_page = allocate_user_page(current, 0x0);
-  if (code_page == 0) {
-    return -1;
-  }
-  memcpy(code_page, start, size);
-  set_cpu_sysregs(current);
-  return 0;
-}
-
-static void prepare_vmtask(unsigned long arg) {
+static void prepare_task(loader_func_t loader, unsigned long arg) {
   printf("task: arg=%d, EL=%d\r\n", arg, get_el());
 
-  extern unsigned long el1_test_begin;
-  extern unsigned long el1_test_end;
-  unsigned long begin = (unsigned long)&el1_test_begin;
-  unsigned long end = (unsigned long)&el1_test_end;
-  int err = prepare_el1_switching(begin, end - begin, 0x0);
-  if (err < 0) {
-    printf("task: prepare_el1_switching() failed.\n\r");
+  struct pt_regs *regs = task_pt_regs(current);
+  regs->pstate = PSR_MODE_EL1h;
+
+  if (loader(arg, &regs->pc, &regs->sp) < 0) {
+    printf("task: load failed.\n\r");
   }
+
+  set_cpu_sysregs(current);
+
   printf("task: entering el1...\n\r");
 }
 
@@ -54,7 +39,7 @@ static void prepare_initial_sysregs(void) {
   is_first_call = 0;
 }
 
-int create_vmtask(unsigned long arg) {
+int create_task(loader_func_t loader, unsigned long arg) {
   preempt_disable();
   struct task_struct *p;
 
@@ -65,8 +50,9 @@ int create_vmtask(unsigned long arg) {
   if (!p)
     return -1;
 
-  p->cpu_context.x19 = (unsigned long)prepare_vmtask;
-  p->cpu_context.x20 = arg;
+  p->cpu_context.x19 = (unsigned long)prepare_task;
+  p->cpu_context.x20 = (unsigned long)loader;
+  p->cpu_context.x21 = arg;
   p->flags = PF_KTHREAD;
   p->priority = current->priority;
   p->state = TASK_RUNNING;

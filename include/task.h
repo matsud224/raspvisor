@@ -13,7 +13,9 @@
 #define PSR_MODE_EL3t 0x0000000c
 #define PSR_MODE_EL3h 0x0000000d
 
-int create_vmtask(unsigned long arg);
+typedef int (*loader_func_t)(unsigned long, unsigned long *, unsigned long *);
+
+int create_task(loader_func_t, unsigned long);
 
 struct pt_regs {
   unsigned long regs[31];

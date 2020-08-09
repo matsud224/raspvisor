@@ -1,5 +1,4 @@
-#ifndef _P_TIMER_H
-#define _P_TIMER_H
+#pragma once
 
 #include "peripherals/base.h"
 
@@ -15,5 +14,3 @@
 #define TIMER_CS_M1 (1 << 1)
 #define TIMER_CS_M2 (1 << 2)
 #define TIMER_CS_M3 (1 << 3)
-
-#endif /*_P_TIMER_H */

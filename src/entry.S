@@ -1,13 +1,12 @@
 #include "arm/sysregs.h"
 #include "entry.h"
-#include "sys.h"
 
-  .macro handle_invalid_entry type func
+  .macro handle_invalid_entry type
   kernel_entry
   mov x0, #\type
   mrs x1, esr_el2
   mrs x2, elr_el2
-  bl  \func
+  bl  show_invalid_entry_message
   b err_hang
   .endm
 
@@ -97,34 +96,34 @@ vectors:
   ventry  error_invalid_el01_32    // Error 32-bit EL0 or 1
 
 sync_invalid_el2:
-  handle_invalid_entry SYNC_INVALID_EL2 show_invalid_entry_message
+  handle_invalid_entry SYNC_INVALID_EL2
 
 irq_invalid_el2:
-  handle_invalid_entry IRQ_INVALID_EL2 show_invalid_entry_message
+  handle_invalid_entry IRQ_INVALID_EL2
 
 fiq_invalid_el2:
-  handle_invalid_entry FIQ_INVALID_EL2 show_invalid_entry_message
+  handle_invalid_entry FIQ_INVALID_EL2
 
 error_invalid_el2:
-  handle_invalid_entry ERROR_INVALID_EL2 show_invalid_entry_message
+  handle_invalid_entry ERROR_INVALID_EL2
 
 fiq_invalid_el01_64:
-  handle_invalid_entry FIQ_INVALID_EL01_64 show_invalid_entry_message
+  handle_invalid_entry FIQ_INVALID_EL01_64
 
 error_invalid_el01_64:
-  handle_invalid_entry ERROR_INVALID_EL01_64 show_invalid_entry_message
+  handle_invalid_entry ERROR_INVALID_EL01_64
 
 sync_invalid_el01_32:
-  handle_invalid_entry SYNC_INVALID_EL01_32 show_invalid_entry_message
+  handle_invalid_entry SYNC_INVALID_EL01_32
 
 irq_invalid_el01_32:
-  handle_invalid_entry IRQ_INVALID_EL01_32 show_invalid_entry_message
+  handle_invalid_entry IRQ_INVALID_EL01_32
 
 fiq_invalid_el01_32:
-  handle_invalid_entry FIQ_INVALID_EL01_32 show_invalid_entry_message
+  handle_invalid_entry FIQ_INVALID_EL01_32
 
 error_invalid_el01_32:
-  handle_invalid_entry ERROR_INVALID_EL01_32 show_invalid_entry_message
+  handle_invalid_entry ERROR_INVALID_EL01_32
 
 
 el2_irq:
@@ -139,45 +138,12 @@ el01_irq:
 
 el01_sync:
   kernel_entry
-  mrs x25, esr_el2        // read the syndrome register
-  lsr x24, x25, #ESR_EL2_EC_SHIFT   // exception class
-  //cmp x24, #ESR_EL2_EC_HVC64      // HVC in 64-bit state
-  //b.eq  el01_hvc
-  //cmp x24, #ESR_EL2_EC_DABT_LOW   // data abort in EL0
-  //b.eq  el01_da
-  handle_invalid_entry SYNC_ERROR show_uncaught_sync_exception_message
-
-hc_nr .req  x25         // number of hvcs
-hcno  .req  x26         // hvc number
-htbl  .req  x27         // hvc table pointer
-
-el01_hvc:
-  adr htbl, hvc_table     // load hvc table pointer
-  uxtw  hcno, w8        // hvc number in w8
-  mov hc_nr, #__NR_hvcs
-  bl  enable_irq
-  cmp     hcno, hc_nr                       // check upper syscall limit
-  b.hs  ni_hv
-
-  ldr x16, [htbl, hcno, lsl #3]   // address in the syscall table
-  blr x16         // call hvc_* routine
-  b ret_from_hvc
-ni_hv:
-  handle_invalid_entry HVC_ERROR show_invalid_entry_message
-ret_from_hvc:
-  bl  disable_irq
-  str x0, [sp, #S_X0]       // returned x0
-  kernel_exit
-
-el01_da:
-  bl  enable_irq
-  mrs x0, far_el2
-  mrs x1, esr_el2
-  bl  do_mem_abort
-  cmp x0, 0
-  b.eq 1f
-  handle_invalid_entry DATA_ABORT_ERROR show_invalid_entry_message
-1:
+  bl enable_irq
+  mrs x0, esr_el2
+  mrs x1, elr_el2
+  mrs x2, far_el2
+  mov x3, x8 // hvc number in x8
+  bl handle_sync_exception
   bl disable_irq
   kernel_exit
 

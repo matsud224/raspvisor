@@ -1,5 +1,4 @@
-#ifndef _MMU_H
-#define _MMU_H
+#pragma once
 
 #define MM_TYPE_PAGE_TABLE    0x3
 #define MM_TYPE_PAGE          0x3
@@ -45,5 +44,3 @@
 #define TCR_T0SZ    (64 - 48)
 #define TCR_TG0_4K  (0 << 14)
 #define TCR_VALUE   (TCR_T0SZ | TCR_TG0_4K)
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef _P_GPIO_H
-#define _P_GPIO_H
+#pragma once
 
 #include "peripherals/base.h"
 
@@ -8,5 +7,3 @@
 #define GPCLR0 (PBASE + 0x00200028)
 #define GPPUD (PBASE + 0x00200094)
 #define GPPUDCLK0 (PBASE + 0x00200098)
-
-#endif /*_P_GPIO_H */

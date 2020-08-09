@@ -1,5 +1,4 @@
-#ifndef _MM_H
-#define _MM_H
+#pragma once
 
 #include "peripherals/base.h"
 
@@ -50,5 +49,3 @@ unsigned long allocate_user_page(struct task_struct *task, unsigned long va);
 extern unsigned long pg_dir;
 
 #endif
-
-#endif /*_MM_H */

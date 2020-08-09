@@ -5,10 +5,8 @@
 #include "mini_uart.h"
 #include "printf.h"
 #include "sched.h"
-#include "sys.h"
 #include "task.h"
 #include "timer.h"
-#include "user.h"
 #include "utils.h"
 
 void hypervisor_main() {

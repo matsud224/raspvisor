@@ -1,5 +1,4 @@
-#ifndef _SCHED_H
-#define _SCHED_H
+#pragma once
 
 #define THREAD_CPU_CONTEXT 0 // offset of cpu_context in task_struct
 
@@ -89,5 +88,4 @@ extern void exit_process(void);
         PF_KTHREAD, /* mm */ {0, 0, {{0}}, 0, {0}},                            \
         /*cpu_sysregs*/ {0, 0, 0, 0, 0, 0},                                    \
   }
-#endif
 #endif

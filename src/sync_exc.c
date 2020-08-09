@@ -1,4 +1,6 @@
 #include "sync_exc.h"
+#include "printf.h"
+#include "arm/sysregs.h"
 
 const char *sync_error_reasons[] = {
   "Unknown reason.",
@@ -64,9 +66,29 @@ const char *sync_error_reasons[] = {
   "BRK instruction execution in AArch64 state.",
 };
 
-void show_uncaught_sync_exception_message(int type, unsigned long esr,
-                                unsigned long address) {
+#define ESR_EL2_EC_SHIFT     26
+
+#define ESR_EL2_EC_TRAP_WFx  1
+#define ESR_EL2_EC_HVC64     22
+#define ESR_EL2_EC_DABT_LOW  36
+
+void handle_sync_exception(unsigned long esr, unsigned long elr,
+    unsigned long far, unsigned long hvc_nr) {
   int eclass = (esr >> ESR_EL2_EC_SHIFT) & 0x3f;
-  printf("Uncaught sync exception: %s, esr: %x, address: %x\r\n",
-      sync_error_reasons[eclass], esr, address);
+
+  switch (eclass) {
+  case ESR_EL2_EC_TRAP_WFx:
+    printf("WFx!\r\n");
+    break;
+  case ESR_EL2_EC_HVC64:
+    printf("HVC(%d)!\r\n", hvc_nr);
+    break;
+  case ESR_EL2_EC_DABT_LOW:
+
+    break;
+  default:
+    printf("Uncaught sync exception: %s, esr: %x, address: %x\r\n",
+        sync_error_reasons[eclass], esr, elr);
+    break;
+  }
 }

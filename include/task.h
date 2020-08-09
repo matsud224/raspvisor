@@ -1,5 +1,4 @@
-#ifndef _TASK_H
-#define _TASK_H
+#pragma once
 
 #include "sched.h"
 
@@ -22,5 +21,3 @@ struct pt_regs {
   unsigned long pc;
   unsigned long pstate;
 };
-
-#endif

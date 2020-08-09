@@ -3,7 +3,6 @@
 #include "mm.h"
 #include "printf.h"
 #include "sched.h"
-#include "user.h"
 #include "utils.h"
 
 static struct pt_regs *task_pt_regs(struct task_struct *tsk) {
@@ -18,7 +17,7 @@ static int prepare_el1_switching(unsigned long start, unsigned long size,
   regs->pc = pc;
   regs->sp = 2 * PAGE_SIZE;
 
-  unsigned long code_page = allocate_user_page(current, 0x80000);
+  unsigned long code_page = allocate_user_page(current, 0x0);
   if (code_page == 0) {
     return -1;
   }
@@ -29,13 +28,12 @@ static int prepare_el1_switching(unsigned long start, unsigned long size,
 
 static void prepare_vmtask(unsigned long arg) {
   printf("task: arg=%d, EL=%d\r\n", arg, get_el());
-  unsigned int insns[] = {
-    0xd503207f,  // wfi
-    0x52800008,  // mov w8, #0
-    0xd4000002,  // hvc #0
-    0xd65f03c0,  // ret
-  };
-  int err = prepare_el1_switching((unsigned long)insns, (unsigned long)(sizeof(insns)), 0x80000);
+
+  extern unsigned long el1_test_begin;
+  extern unsigned long el1_test_end;
+  unsigned long begin = (unsigned long)&el1_test_begin;
+  unsigned long end = (unsigned long)&el1_test_end;
+  int err = prepare_el1_switching(begin, end - begin, 0x0);
   if (err < 0) {
     printf("task: prepare_el1_switching() failed.\n\r");
   }

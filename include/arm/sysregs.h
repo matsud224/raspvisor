@@ -1,5 +1,4 @@
-#ifndef _SYSREGS_H
-#define _SYSREGS_H
+#pragma once
 
 // ***************************************
 // SCTLR_EL2, System Control Register (EL2)
@@ -55,16 +54,6 @@
 #define SPSR_VALUE    (SPSR_MASK_ALL | SPSR_EL2h)
 
 // ***************************************
-// ESR_EL2, Exception Syndrome Register (EL2)
-// ***************************************
-
-#define ESR_EL2_EC_SHIFT     26
-
-#define ESR_EL2_EC_TRAP_WFx  1
-#define ESR_EL2_EC_HVC64     22
-#define ESR_EL2_EC_DABT_LOW  36
-
-// ***************************************
 // VTCR_EL2,  Virtualization Translation Control Register (EL2)
 // ***************************************
 
@@ -81,5 +70,3 @@
 
 #define VTCR_VALUE                                                             \
   (VTCR_NSA | VTCR_NSW | VTCR_VS | VTCR_PS | VTCR_TG0 | VTCR_SH0 | VTCR_ORGN0 | VTCR_IRGN0 | VTCR_SL0 | VTCR_T0SZ)
-
-#endif

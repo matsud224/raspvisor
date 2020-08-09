@@ -21,6 +21,7 @@
 
 #define HCR_E2H   (0 << 34)
 #define HCR_RW    (1 << 31)
+#define HCR_TRVM  (1 << 30)
 #define HCR_TGE   (0 << 27)
 #define HCR_TWI   (1 << 13)
 #define HCR_AMO   (1 << 5) // routing to EL2
@@ -39,9 +40,10 @@
 
 #define SCR_RESERVED (3 << 4)
 #define SCR_RW       (1 << 10)
+#define SCR_HCE      (1 << 8)
 #define SCR_NS       (1 << 0)
 
-#define SCR_VALUE    (SCR_RESERVED | SCR_RW | SCR_NS)
+#define SCR_VALUE    (SCR_RESERVED | SCR_RW | SCR_HCE | SCR_NS)
 
 // ***************************************
 // SPSR_EL3, Saved Program Status Register (EL3)
@@ -68,12 +70,16 @@
 
 #define VTCR_NSA   (1 << 30)
 #define VTCR_NSW   (1 << 29)
-#define VTCR_VS    (1 << 19)
-#define VTCR_PS    (5 << 16)
+#define VTCR_VS    (0 << 19)
+#define VTCR_PS    (2 << 16)
 #define VTCR_TG0   (0 << 14) // 4KB
-#define VTCR_SL0   (2 << 6)
-#define VTCR_T0SZ  (64 - 48)
+#define VTCR_SH0   (3 << 12)
+#define VTCR_ORGN0 (1 << 10)
+#define VTCR_IRGN0 (1 << 8)
+#define VTCR_SL0   (1 << 6)
+#define VTCR_T0SZ  (64 - 38)
+
 #define VTCR_VALUE                                                             \
-  (VTCR_NSA | VTCR_NSW | VTCR_VS | VTCR_PS | VTCR_TG0 | VTCR_SL0 | VTCR_T0SZ)
+  (VTCR_NSA | VTCR_NSW | VTCR_VS | VTCR_PS | VTCR_TG0 | VTCR_SH0 | VTCR_ORGN0 | VTCR_IRGN0 | VTCR_SL0 | VTCR_T0SZ)
 
 #endif

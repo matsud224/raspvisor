@@ -9,6 +9,11 @@ user_delay:
   bne user_delay
   ret
 
+.globl user_wfi
+user_wfi:
+  wfi
+  ret
+
 .globl call_hvc_notify
 call_hvc_notify:
   mov w8, #HVC_NOTIFY_NUMBER

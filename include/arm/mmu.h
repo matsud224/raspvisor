@@ -8,7 +8,6 @@
 #define MM_ACCESS             (1 << 10)
 #define MM_nG                 (0 << 11)
 #define MM_SH                 (3 << 8)
-#define MM_ACCESS_PERMISSION  (1 << 6)
 
 /*
  * Memory region attributes:
@@ -36,10 +35,11 @@
 
 #define MM_STAGE2_ACCESS   (1 << 10)
 #define MM_STAGE2_SH       (3 << 8)
-#define MM_STAGE2_MEMATTR  (1 << 0)
+#define MM_STAGE2_AP       (3 << 6)
+#define MM_STAGE2_MEMATTR  (0xf << 2)
 
 #define MMU_STAGE2_PAGE_FLAGS                                                  \
-  (MM_TYPE_PAGE | MM_STAGE2_ACCESS | MM_STAGE2_SH | MM_STAGE2_MEMATTR)
+  (MM_TYPE_PAGE | MM_STAGE2_ACCESS | MM_STAGE2_SH | MM_STAGE2_AP | MM_STAGE2_MEMATTR)
 
 
 #define TCR_T0SZ    (64 - 48)

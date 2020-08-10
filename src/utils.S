@@ -45,8 +45,7 @@ set_stage2_pgd:
   // set address of PGD
   msr vttbr_el2, x0
   // TLB invalidate
-  dsb ishst
-  tlbi vmalls12e1is
+  tlbi vmalls12e1
   dsb ish              // ensure completion of TLB invalidation
   isb
   ret

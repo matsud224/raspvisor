@@ -114,10 +114,9 @@ void handle_trap_system(unsigned long esr) {
   unsigned int crm = (esr >> 1) & 0xf;
   unsigned int dir = esr & 0x1;
 
-  INFO("trap_system: op0=%d,op2=%d,op1=%d,crn=%d,rt=%d,crm=%d,dir=%d",
-      op0,op2,op1,crn,rt,crm,dir);
+  //INFO("trap_system: op0=%d,op2=%d,op1=%d,crn=%d,rt=%d,crm=%d,dir=%d",
+  //    op0,op2,op1,crn,rt,crm,dir);
 
-  INFO("id_aa64mmfr0_el1 = %d", current->cpu_sysregs.id_aa64mmfr0_el1);
   if ((op0 & 2) && dir == 0) {
     // msr(reg)
     DEFINE_SYSREG_MSR(actlr_el1, 0, 1, 0, 1);

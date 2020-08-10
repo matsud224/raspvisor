@@ -83,14 +83,11 @@ void map_stage2_page(struct task_struct *task, unsigned long va,
 }
 
 
-#define ISS_ABORT_S1PTW (1 << 7)
-
-#define ISS_ABORT_IFSC 0b111111
-#define IFSC_TRANS_FAULT_EL1 0b000101
+#define ISS_ABORT_DFSC_MASK  0x3f
 
 int handle_mem_abort(unsigned long addr, unsigned long esr) {
-  if ((esr & ISS_ABORT_S1PTW) == ISS_ABORT_S1PTW) {
-    // stage 2 translation fault
+  if (((esr & ISS_ABORT_DFSC_MASK) >> 2) == 0x1) {
+    // translation fault
     unsigned long page = get_free_page();
     if (page == 0) {
       return -1;

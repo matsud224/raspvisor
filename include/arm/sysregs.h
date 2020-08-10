@@ -69,8 +69,8 @@
 #define VTCR_PS    (2 << 16)
 #define VTCR_TG0   (0 << 14) // 4KB
 #define VTCR_SH0   (3 << 12)
-#define VTCR_ORGN0 (1 << 10)
-#define VTCR_IRGN0 (1 << 8)
+#define VTCR_ORGN0 (0 << 10)
+#define VTCR_IRGN0 (0 << 8)
 #define VTCR_SL0   (1 << 6)
 #define VTCR_T0SZ  (64 - 38)
 

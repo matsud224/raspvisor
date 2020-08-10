@@ -1,5 +1,8 @@
 #include "sync_exc.h"
-#include "printf.h"
+#include "irq.h"
+#include "mm.h"
+#include "sched.h"
+#include "debug.h"
 #include "arm/sysregs.h"
 
 const char *sync_error_reasons[] = {
@@ -81,25 +84,29 @@ void handle_sync_exception(unsigned long esr, unsigned long elr,
 
   switch (eclass) {
   case ESR_EL2_EC_TRAP_WFX:
-    printf("TRAP_WFX\r\n");
+    // FIXME: pc += 4
+    enable_irq();
+    _schedule();
+    disable_irq();
     break;
   case ESR_EL2_EC_TRAP_FP_REG:
-    printf("TRAP_FP_REG\r\n");
+    INFO("TRAP_FP_REG");
     break;
   case ESR_EL2_EC_HVC64:
-    printf("HVC(%d)!\r\n", hvc_nr);
+    INFO("HVC(%d)!", hvc_nr);
     break;
   case ESR_EL2_EC_TRAP_SYSTEM:
-    printf("TRAP_SYSTEM\r\n");
+    INFO("TRAP_SYSTEM");
     break;
   case ESR_EL2_EC_TRAP_SVE:
-    printf("TRAP_SVE\r\n");
+    INFO("TRAP_SVE");
     break;
   case ESR_EL2_EC_DABT_LOW:
-    printf("DABT_LOW\r\n");
+    if (handle_mem_abort(far, esr) < 0)
+      PANIC("handle_mem_abort() failed.");
     break;
   default:
-    printf("Uncaught synchronous exception:\r\n%s\r\nesr: %x, address: %x\r\n",
+    PANIC("uncaught synchronous exception:\r\n%s\r\nesr: %x, address: %x",
         sync_error_reasons[eclass], esr, elr);
     break;
   }

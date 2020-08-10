@@ -1,10 +1,10 @@
 #include "peripherals/irq.h"
 #include "arm/sysregs.h"
 #include "entry.h"
-#include "printf.h"
 #include "timer.h"
 #include "utils.h"
 #include "sched.h"
+#include "debug.h"
 
 const char *entry_error_messages[] = {
   "SYNC_INVALID_EL2",
@@ -29,8 +29,8 @@ void enable_interrupt_controller() {
 
 void show_invalid_entry_message(int type, unsigned long esr,
                                 unsigned long address) {
-  printf("%s, ESR: %x, address: %x\r\n", entry_error_messages[type], esr,
-         address);
+  PANIC("uncaught exception(%s) ESR: %x, address: %x", entry_error_messages[type],
+         esr, address);
 }
 
 void handle_irq(void) {
@@ -40,6 +40,6 @@ void handle_irq(void) {
     handle_timer_irq();
     break;
   default:
-    printf("Inknown pending irq: %x\r\n", irq);
+    WARN("unknown pending irq: %x", irq);
   }
 }

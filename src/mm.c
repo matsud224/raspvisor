@@ -1,6 +1,5 @@
 #include "utils.h"
 #include "mm.h"
-#include "printf.h"
 #include "arm/mmu.h"
 
 static unsigned short mem_map[PAGING_PAGES] = { 0 };
@@ -90,7 +89,7 @@ void map_stage2_page(struct task_struct *task, unsigned long va,
 #define ISS_ABORT_IFSC 0b111111
 #define IFSC_TRANS_FAULT_EL1 0b000101
 
-int do_mem_abort(unsigned long addr, unsigned long esr) {
+int handle_mem_abort(unsigned long addr, unsigned long esr) {
   if ((esr & ISS_ABORT_S1PTW) == ISS_ABORT_S1PTW) {
     // stage 2 translation fault
     unsigned long page = get_free_page();

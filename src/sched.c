@@ -1,7 +1,6 @@
 #include "sched.h"
 #include "irq.h"
 #include "mm.h"
-#include "printf.h"
 #include "utils.h"
 
 static struct task_struct init_task = INIT_TASK;
@@ -75,7 +74,7 @@ void timer_tick() {
   disable_irq();
 }
 
-void exit_process() {
+void exit_task() {
   preempt_disable();
   for (int i = 0; i < NR_TASKS; i++) {
     if (task[i] == current) {

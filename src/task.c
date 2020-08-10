@@ -1,9 +1,9 @@
 #include "task.h"
 #include "entry.h"
 #include "mm.h"
-#include "printf.h"
 #include "sched.h"
 #include "utils.h"
+#include "debug.h"
 
 static struct pt_regs *task_pt_regs(struct task_struct *tsk) {
   unsigned long p = (unsigned long)tsk + THREAD_SIZE - sizeof(struct pt_regs);
@@ -11,18 +11,18 @@ static struct pt_regs *task_pt_regs(struct task_struct *tsk) {
 }
 
 static void prepare_task(loader_func_t loader, unsigned long arg) {
-  printf("task: arg=%d, EL=%d\r\n", arg, get_el());
+  INFO("loading...");
 
   struct pt_regs *regs = task_pt_regs(current);
   regs->pstate = PSR_MODE_EL1h;
 
   if (loader(arg, &regs->pc, &regs->sp) < 0) {
-    printf("task: load failed.\n\r");
+    PANIC("failed to load");
   }
 
   set_cpu_sysregs(current);
 
-  printf("task: entering el1...\n\r");
+  INFO("entering el1...");
 }
 
 static struct cpu_sysregs initial_sysregs;

@@ -91,16 +91,18 @@ void handle_hvc64(unsigned long hvc_nr) {
 
 void handle_trap_system(unsigned long esr) {
 #define DEFINE_SYSREG_MSR(name, _op1, _crn, _crm, _op2) do { \
-  if (op1 == (_op1) && crn == (_crn) && crm == (_crm) && op2 == (_op2)) \
+  if (op1 == (_op1) && crn == (_crn) && crm == (_crm) && op2 == (_op2)) { \
     current->cpu_sysregs.name = regs->regs[rt]; \
     goto sys_fin; \
-  } while(0)
+  } \
+} while(0)
 
 #define DEFINE_SYSREG_MRS(name, _op1, _crn, _crm, _op2) do { \
-  if (op1 == (_op1) && crn == (_crn) && crm == (_crm) && op2 == (_op2)) \
+  if (op1 == (_op1) && crn == (_crn) && crm == (_crm) && op2 == (_op2)) { \
     regs->regs[rt] = current->cpu_sysregs.name; \
     goto sys_fin; \
-  } while(0)
+  } \
+} while(0)
 
   struct pt_regs *regs = task_pt_regs(current);
 
@@ -112,9 +114,10 @@ void handle_trap_system(unsigned long esr) {
   unsigned int crm = (esr >> 1) & 0xf;
   unsigned int dir = esr & 0x1;
 
-  //INFO("trap_system: op0=%d,op2=%d,op1=%d,crn=%d,rt=%d,crm=%d,dir=%d",
-  //    op0,op2,op1,crn,rt,crm,dir);
+  INFO("trap_system: op0=%d,op2=%d,op1=%d,crn=%d,rt=%d,crm=%d,dir=%d",
+      op0,op2,op1,crn,rt,crm,dir);
 
+  INFO("id_aa64mmfr0_el1 = %d", current->cpu_sysregs.id_aa64mmfr0_el1);
   if ((op0 & 2) && dir == 0) {
     // msr(reg)
     DEFINE_SYSREG_MSR(actlr_el1, 0, 1, 0, 1);

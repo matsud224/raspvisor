@@ -64,23 +64,22 @@ void map_stage2_page(struct task_struct *task, unsigned long va,
   unsigned long lv1_table;
   if (!task->mm.first_table) {
     task->mm.first_table = get_free_page();
-    task->mm.kernel_pages[++task->mm.kernel_pages_count] = task->mm.first_table;
+    task->mm.kernel_pages_count++;
   }
   lv1_table = task->mm.first_table;
   int new_table;
   unsigned long lv2_table = map_stage2_table((unsigned long *)(lv1_table + VA_START),
                                        LV1_SHIFT, va, &new_table);
   if (new_table) {
-    task->mm.kernel_pages[++task->mm.kernel_pages_count] = lv2_table;
+    task->mm.kernel_pages_count++;
   }
   unsigned long lv3_table = map_stage2_table((unsigned long *)(lv2_table + VA_START),
                                        LV2_SHIFT, va, &new_table);
   if (new_table) {
-    task->mm.kernel_pages[++task->mm.kernel_pages_count] = lv3_table;
+    task->mm.kernel_pages_count++;
   }
   map_stage2_table_entry((unsigned long *)(lv3_table + VA_START), va, page);
-  struct user_page p = {page, va};
-  task->mm.user_pages[task->mm.user_pages_count++] = p;
+  task->mm.user_pages_count++;
 }
 
 

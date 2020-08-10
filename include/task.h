@@ -15,6 +15,7 @@
 
 typedef int (*loader_func_t)(unsigned long, unsigned long *, unsigned long *);
 
+struct pt_regs *task_pt_regs(struct task_struct *);
 int create_task(loader_func_t, unsigned long);
 
 struct pt_regs {

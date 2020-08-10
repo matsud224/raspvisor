@@ -1,5 +1,7 @@
 #pragma once
 
+#define INSN_LENGTH  4
+
 // ***************************************
 // SCTLR_EL2, System Control Register (EL2)
 // ***************************************

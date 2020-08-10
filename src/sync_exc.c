@@ -3,6 +3,7 @@
 #include "mm.h"
 #include "sched.h"
 #include "debug.h"
+#include "task.h"
 #include "arm/sysregs.h"
 
 const char *sync_error_reasons[] = {
@@ -78,22 +79,29 @@ const char *sync_error_reasons[] = {
 #define ESR_EL2_EC_TRAP_SVE       25
 #define ESR_EL2_EC_DABT_LOW       36
 
+void handle_trap_wfx() {
+  struct pt_regs *regs = task_pt_regs(current);
+  regs->pc += INSN_LENGTH;
+  schedule();
+}
+
+void handle_hvc64(unsigned long hvc_nr) {
+  INFO("HVC(%d)!", hvc_nr);
+}
+
 void handle_sync_exception(unsigned long esr, unsigned long elr,
     unsigned long far, unsigned long hvc_nr) {
   int eclass = (esr >> ESR_EL2_EC_SHIFT) & 0x3f;
 
   switch (eclass) {
   case ESR_EL2_EC_TRAP_WFX:
-    // FIXME: pc += 4
-    enable_irq();
-    _schedule();
-    disable_irq();
+    handle_trap_wfx();
     break;
   case ESR_EL2_EC_TRAP_FP_REG:
     INFO("TRAP_FP_REG");
     break;
   case ESR_EL2_EC_HVC64:
-    INFO("HVC(%d)!", hvc_nr);
+    handle_hvc64(hvc_nr);
     break;
   case ESR_EL2_EC_TRAP_SYSTEM:
     INFO("TRAP_SYSTEM");

@@ -10,6 +10,7 @@ el1_test_1:
 .globl el1_test_2
 el1_test_2:
 2:
+  wfi
   mov x8, #2
   hvc #0
   b 2b

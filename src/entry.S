@@ -138,13 +138,11 @@ el01_irq:
 
 el01_sync:
   kernel_entry
-  bl enable_irq
   mrs x0, esr_el2
   mrs x1, elr_el2
   mrs x2, far_el2
   mov x3, x8 // hvc number in x8
   bl handle_sync_exception
-  bl disable_irq
   kernel_exit
 
 .globl switch_from_kthread

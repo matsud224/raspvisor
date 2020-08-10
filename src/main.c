@@ -47,7 +47,7 @@ int test_program_loader (unsigned long arg, unsigned long *pc,
 void hypervisor_main() {
   uart_init();
   init_printf(NULL, putc);
-  printf("=== raspvisor ===\r\n");
+  printf("=== raspvisor ===\n");
   irq_vector_init();
   timer_init();
   enable_interrupt_controller();

@@ -106,7 +106,7 @@ void handle_sync_exception(unsigned long esr, unsigned long elr,
       PANIC("handle_mem_abort() failed.");
     break;
   default:
-    PANIC("uncaught synchronous exception:\r\n%s\r\nesr: %x, address: %x",
+    PANIC("uncaught synchronous exception:\n%s\nesr: %x, address: %x",
         sync_error_reasons[eclass], esr, elr);
     break;
   }

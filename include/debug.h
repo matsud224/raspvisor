@@ -13,7 +13,7 @@ static void print_status(const char *level) {
 
 #define _LOG_COMMON(level, fmt, ...) do { \
   print_status(level); \
-  printf(fmt "\r\n", ##__VA_ARGS__); \
+  printf(fmt "\n", ##__VA_ARGS__); \
 } while(0)
 
 

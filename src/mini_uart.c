@@ -2,12 +2,21 @@
 #include "peripherals/gpio.h"
 #include "utils.h"
 
-void uart_send(char c) {
+static void _uart_send(char c) {
   while (1) {
     if (get32(AUX_MU_LSR_REG) & 0x20)
       break;
   }
   put32(AUX_MU_IO_REG, c);
+}
+
+void uart_send(char c) {
+  if (c == '\n') {
+    _uart_send('\r');
+    _uart_send('\n');
+  } else {
+    _uart_send(c);
+  }
 }
 
 char uart_recv(void) {

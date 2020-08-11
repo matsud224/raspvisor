@@ -4,15 +4,12 @@
 #include "entry.h"
 #include "sched.h"
 
-static void print_status(const char *level) {
-  if (current)
-    printf("%s[%d]: ", level, current->pid);
-  else
-    printf("%s[?]: ", level);
-}
-
 #define _LOG_COMMON(level, fmt, ...) do { \
-  print_status(level); \
+  if (current) { \
+    printf("%s[%d]: ", (level), current->pid); \
+  } else { \
+    printf("%s[?]: ", (level)); \
+  } \
   printf(fmt "\n", ##__VA_ARGS__); \
 } while(0)
 

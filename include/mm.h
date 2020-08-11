@@ -44,6 +44,7 @@ int copy_virt_memory(struct task_struct *dst);
 unsigned long allocate_kernel_page();
 unsigned long allocate_user_page(struct task_struct *task, unsigned long va);
 
+void increment_current_pc(int);
 int handle_mem_abort(unsigned long addr, unsigned long esr);
 
 extern unsigned long pg_dir;

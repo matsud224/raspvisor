@@ -1,5 +1,6 @@
 #include "utils.h"
 #include "mm.h"
+#include "mmio_emu.h"
 #include "arm/mmu.h"
 
 static unsigned short mem_map[PAGING_PAGES] = { 0 };
@@ -86,13 +87,26 @@ void map_stage2_page(struct task_struct *task, unsigned long va,
 #define ISS_ABORT_DFSC_MASK  0x3f
 
 int handle_mem_abort(unsigned long addr, unsigned long esr) {
-  if (((esr & ISS_ABORT_DFSC_MASK) >> 2) == 0x1) {
+  unsigned int dfsc = esr & ISS_ABORT_DFSC_MASK;
+  if (dfsc >> 2 == 0x1) {
     // translation fault
     unsigned long page = get_free_page();
     if (page == 0) {
       return -1;
     }
     map_stage2_page(current, addr & PAGE_MASK, page);
+    return 0;
+  } else if (dfsc >> 2 == 0x2) {
+    // access flag fault (mmio)
+    int sas = esr & 0x40;
+    int srt = esr & 0x40;
+    int wnr = esr & 0x40;
+    if (wnr == 0)
+      handle_mmio_read(addr, sas);
+    else
+      handle_mmio_write(addr, val, sas);
+
+    increment_current_pc(4);
     return 0;
   }
   return -1;

@@ -104,6 +104,7 @@ struct cpu_sysregs {
   unsigned long revidr_el1; // r
 
   // system timer
+  /*
   unsigned long cntfrq_el0;
   unsigned long cntkctl_el1;
   unsigned long cntp_ctl_el0;
@@ -117,6 +118,34 @@ struct cpu_sysregs {
   unsigned long cntv_cval_el0;
   unsigned long cntv_tval_el0;
   unsigned long cntvct_el0;
+  */
+};
+
+struct bcm2835 {
+  struct aux_peripherals_regs {
+    unsigned int aux_enables;
+    unsigned int aux_mu_io;
+    unsigned int aux_mu_ier;
+    unsigned int aux_mu_iir;
+    unsigned int aux_mu_lcr;
+    unsigned int aux_mu_mcr;
+    unsigned int aux_mu_lsr;
+    unsigned int aux_mu_msr;
+    unsigned int aux_mu_scratch;
+    unsigned int aux_mu_cntl;
+    unsigned int aux_mu_stat;
+    unsigned int aux_mu_baud;
+  } aux;
+
+  struct systimer_regs {
+    unsigned long cs;
+    unsigned long clo;
+    unsigned long chi;
+    unsigned long c0;
+    unsigned long c1;
+    unsigned long c2;
+    unsigned long c3;
+  } systimer;
 };
 
 struct mm_struct {
@@ -135,6 +164,7 @@ struct task_struct {
   unsigned long flags;
   struct mm_struct mm;
   struct cpu_sysregs cpu_sysregs;
+  struct bcm2835 bcm2835;
 };
 
 extern void sched_init(void);
@@ -149,9 +179,10 @@ extern void exit_task(void);
 
 #define INIT_TASK  \
   {  \
-    /*cpu_context*/ {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, \
-    /* state etc */ 0, 0, 15, 0, 0, 0,  \
-    /* mm */        {0, 0, 0},  \
-    /*cpu_sysregs*/ {0, 0, 0, 0, 0, 0},  \
+    /* cpu_context */ {0}, \
+    /* state etc */    0, 0, 15, 0, 0, 0,  \
+    /* mm */          {0},  \
+    /* cpu_sysregs */ {0},  \
+    /* bcm2835 */     {{0}, {0}},  \
   }
 #endif

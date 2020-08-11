@@ -81,13 +81,12 @@ const char *sync_error_reasons[] = {
 
 void handle_trap_wfx() {
   schedule();
+  increment_current_pc(4);
 }
 
 void handle_hvc64(unsigned long hvc_nr) {
   WARN("HVC #%d", hvc_nr);
 }
-
-
 
 void handle_trap_system(unsigned long esr) {
 #define DEFINE_SYSREG_MSR(name, _op1, _crn, _crm, _op2) do { \
@@ -157,20 +156,22 @@ void handle_trap_system(unsigned long esr) {
     DEFINE_SYSREG_MRS(revidr_el1, 0, 0, 0, 6);
   }
 sys_fin:
+  increment_current_pc(4);
   return;
 }
 
+void increment_current_pc(int ilen) {
+  struct pt_regs *regs = task_pt_regs(current);
+  regs->pc += ilen;
+}
 
 void handle_sync_exception(unsigned long esr, unsigned long elr,
     unsigned long far, unsigned long hvc_nr) {
-  struct pt_regs *regs = task_pt_regs(current);
   int eclass = (esr >> ESR_EL2_EC_SHIFT) & 0x3f;
-  int ilen = ((esr >> 25) & 1) ? 4 : 2;
 
   switch (eclass) {
   case ESR_EL2_EC_TRAP_WFX:
     handle_trap_wfx();
-    regs->pc += ilen;
     break;
   case ESR_EL2_EC_TRAP_FP_REG:
     WARN("TRAP_FP_REG is not implemented.");
@@ -180,7 +181,6 @@ void handle_sync_exception(unsigned long esr, unsigned long elr,
     break;
   case ESR_EL2_EC_TRAP_SYSTEM:
     handle_trap_system(esr);
-    regs->pc += ilen;
     break;
   case ESR_EL2_EC_TRAP_SVE:
     WARN("TRAP_SVE is not implemented.");

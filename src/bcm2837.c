@@ -25,6 +25,7 @@ struct bcm2837_state {
   struct aux_peripherals_regs {
     struct fifo *mu_tx_fifo;
     struct fifo *mu_rx_fifo;
+    int mu_rx_overrun;
     uint8_t  aux_irq;
     uint8_t  aux_enables;
     uint8_t  aux_mu_io;
@@ -32,11 +33,9 @@ struct bcm2837_state {
     uint8_t  aux_mu_iir;
     uint8_t  aux_mu_lcr;
     uint8_t  aux_mu_mcr;
-    uint8_t  aux_mu_lsr;
     uint8_t  aux_mu_msr;
     uint8_t  aux_mu_scratch;
     uint8_t  aux_mu_cntl;
-    uint32_t aux_mu_stat;
     uint16_t aux_mu_baud;
   } aux;
 
@@ -72,11 +71,9 @@ const struct bcm2837_state initial_state = {
     .aux_mu_iir     = 0xc1,
     .aux_mu_lcr     = 0x0,
     .aux_mu_mcr     = 0x0,
-    .aux_mu_lsr     = 0x40,
-    .aux_mu_msr     = 0x20,
+    .aux_mu_msr     = 0x10,
     .aux_mu_scratch = 0x0,
     .aux_mu_cntl    = 0x3,
-    .aux_mu_stat    = 0x30c,
     .aux_mu_baud    = 0x0,
   },
   .systimer = {
@@ -158,6 +155,8 @@ void handle_intctrl_write(unsigned long addr, unsigned long val, int accsz) {
   }
 }
 
+#define LCR_DLAB 0x80
+
 unsigned long handle_aux_read(unsigned long addr, int accsz) {
   struct bcm2837_state *state = (struct bcm2837_state *)current->board_data;
 
@@ -171,15 +170,20 @@ unsigned long handle_aux_read(unsigned long addr, int accsz) {
   case AUX_ENABLES:
     return state->aux.aux_enables;
   case AUX_MU_IO_REG:
-    if (AUX_MU_LCR_REG & 0x8) {
-      return state->aux.aux_mu_io;
+    if (state->aux.aux_mu_lcr & LCR_DLAB) {
+      state->aux.aux_mu_lcr &= ~LCR_DLAB;
+      return state->aux.aux_mu_baud & 0xff;
     } else {
       unsigned long data;
       dequeue_fifo(state->aux.mu_rx_fifo, &data);
       return data;
     }
   case AUX_MU_IER_REG:
-    return state->aux.aux_mu_ier;
+    if (state->aux.aux_mu_lcr & LCR_DLAB) {
+      return state->aux.aux_mu_baud >> 8;
+    } else {
+      return state->aux.aux_mu_ier;
+    }
   case AUX_MU_IIR_REG:
     return state->aux.aux_mu_iir;
   case AUX_MU_LCR_REG:
@@ -187,7 +191,14 @@ unsigned long handle_aux_read(unsigned long addr, int accsz) {
   case AUX_MU_MCR_REG:
     return state->aux.aux_mu_mcr;
   case AUX_MU_LSR_REG:
-    return state->aux.aux_mu_lsr;
+    {
+    int dready = !is_empty_fifo(state->aux.mu_rx_fifo);
+    int rx_overrun = state->aux.mu_rx_overrun;
+    int tx_empty = !is_full_fifo(state->aux.mu_tx_fifo);
+    int tx_idle = is_empty_fifo(state->aux.mu_tx_fifo);
+    state->aux.mu_rx_overrun = 0;
+    return dready | (rx_overrun << 1) | (tx_empty << 5) | (tx_idle << 6);
+    }
   case AUX_MU_MSR_REG:
     return state->aux.aux_mu_msr;
   case AUX_MU_SCRATCH:
@@ -195,7 +206,23 @@ unsigned long handle_aux_read(unsigned long addr, int accsz) {
   case AUX_MU_CNTL_REG:
     return state->aux.aux_mu_cntl;
   case AUX_MU_STAT_REG:
-    return state->aux.aux_mu_stat;
+    {
+#define MIN(a,b) ((a)<(b)?(a):(b))
+    int sym_avail = !is_empty_fifo(state->aux.mu_rx_fifo);
+    int space_avail = !is_full_fifo(state->aux.mu_tx_fifo);
+    int rx_idle = is_empty_fifo(state->aux.mu_rx_fifo);
+    int tx_idle = !is_empty_fifo(state->aux.mu_tx_fifo);
+    int rx_overrun = state->aux.mu_rx_overrun;
+    int tx_full = !space_avail;
+    int tx_empty = is_empty_fifo(state->aux.mu_tx_fifo);
+    int tx_done = rx_idle & tx_empty;
+    int rx_fifo_level = MIN(used_of_fifo(state->aux.mu_rx_fifo), 8);
+    int tx_fifo_level = MIN(used_of_fifo(state->aux.mu_tx_fifo), 8);
+    return sym_avail | (space_avail << 1) | (rx_idle << 2) |
+      (tx_idle << 3) | (rx_overrun << 4) | (tx_full << 5) |
+      (tx_empty << 8) | (tx_done << 9) | (rx_fifo_level << 16) |
+      (tx_fifo_level << 24);
+    }
   case AUX_MU_BAUD_REG:
     return state->aux.aux_mu_baud;
   }
@@ -214,16 +241,27 @@ void handle_aux_write(unsigned long addr, unsigned long val, int accsz) {
     state->aux.aux_enables = val;
     break;
   case AUX_MU_IO_REG:
-    if (AUX_MU_LCR_REG & 0x8)
-      state->aux.aux_mu_io = val;
-    else
+    if (state->aux.aux_mu_lcr & LCR_DLAB) {
+      state->aux.aux_mu_lcr &= ~LCR_DLAB;
+      state->aux.aux_mu_baud =
+        (state->aux.aux_mu_baud & 0xff00) | (val & 0xff);
+    } else {
       enqueue_fifo(state->aux.mu_tx_fifo, val & 0xff);
+    }
     break;
   case AUX_MU_IER_REG:
-    state->aux.aux_mu_ier = val;
+    if (state->aux.aux_mu_lcr & LCR_DLAB) {
+      state->aux.aux_mu_baud =
+        (state->aux.aux_mu_baud & 0xff) | ((val & 0xff) << 8);
+    } else {
+      state->aux.aux_mu_ier = val;
+    }
     break;
   case AUX_MU_IIR_REG:
-    state->aux.aux_mu_iir = val;
+    if (val & 0x2)
+      clear_fifo(state->aux.mu_rx_fifo);
+    if (val & 0x4)
+      clear_fifo(state->aux.mu_tx_fifo);
     break;
   case AUX_MU_LCR_REG:
     state->aux.aux_mu_lcr = val;

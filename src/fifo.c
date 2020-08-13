@@ -29,14 +29,21 @@ struct fifo *create_fifo() {
   return fifo;
 }
 
-void enqueue_fifo(struct fifo *fifo, unsigned long val) {
-  fifo->buf[fifo->head] = val;
-  if (is_full_fifo(fifo))
-    fifo->tail = NEXT_INDEX(fifo->tail);
-  else
-    fifo->used++;
+void clear_fifo(struct fifo *fifo) {
+  fifo->head = 0;
+  fifo->tail = 0;
+  fifo->used = 0;
+}
 
+int enqueue_fifo(struct fifo *fifo, unsigned long val) {
+  if (is_full_fifo(fifo))
+    return -1;
+
+  fifo->buf[fifo->head] = val;
   fifo->head = NEXT_INDEX(fifo->head);
+  fifo->used++;
+
+  return 0;
 }
 
 int dequeue_fifo(struct fifo *fifo, unsigned long *val) {
@@ -50,4 +57,8 @@ int dequeue_fifo(struct fifo *fifo, unsigned long *val) {
   fifo->used--;
 
   return 0;
+}
+
+int used_of_fifo(struct fifo *fifo) {
+  return fifo->used;
 }

@@ -3,11 +3,28 @@
 #include "debug.h"
 #include "bcm2837.h"
 #include "mm.h"
+#include "fifo.h"
 #include "peripherals/mini_uart.h"
 #include "peripherals/timer.h"
+#include "peripherals/irq.h"
 
 struct bcm2837_state {
+  struct intctrl_regs {
+    uint8_t irq_basic_pending;
+    uint8_t irq_pending_1;
+    uint8_t irq_pending_2;
+    uint8_t fiq_control;
+    uint8_t enable_irqs_1;
+    uint8_t enable_irqs_2;
+    uint8_t enable_basic_irqs;
+    uint8_t disable_irqs_1;
+    uint8_t disable_irqs_2;
+    uint8_t disable_basic_irqs;
+  } intctrl;
+
   struct aux_peripherals_regs {
+    struct fifo *mu_tx_fifo;
+    struct fifo *mu_rx_fifo;
     uint8_t  aux_irq;
     uint8_t  aux_enables;
     uint8_t  aux_mu_io;
@@ -35,6 +52,18 @@ struct bcm2837_state {
 };
 
 const struct bcm2837_state initial_state = {
+  .intctrl = {
+    .irq_basic_pending  = 0x0,
+    .irq_pending_1      = 0x0,
+    .irq_pending_2      = 0x0,
+    .fiq_control        = 0x0,
+    .enable_irqs_1      = 0x0,
+    .enable_irqs_2      = 0x0,
+    .enable_basic_irqs  = 0x0,
+    .disable_irqs_1     = 0x0,
+    .disable_irqs_2     = 0x0,
+    .disable_basic_irqs = 0x0,
+  },
   .aux = {
     .aux_irq        = 0x0,
     .aux_enables    = 0x0,
@@ -61,9 +90,18 @@ const struct bcm2837_state initial_state = {
   },
 };
 
+#define ADDR_IN_INTCTRL(a) ((a) >= IRQ_BASIC_PENDING && (a) <= DISABLE_BASIC_IRQS)
+#define ADDR_IN_AUX(a) ((a) >= AUX_IRQ && (a) <= AUX_MU_BAUD_REG)
+#define ADDR_IN_AUX_MU(a) ((a) >= AUX_MU_IO_REG && (a) <= AUX_MU_BAUD_REG)
+#define ADDR_IN_SYSTIMER(a) ((a) >= TIMER_CS && (a) <= TIMER_C3)
+
 void bcm2837_initialize(struct task_struct *tsk) {
   struct bcm2837_state *state = (struct bcm2837_state *)allocate_page();
   *state = initial_state;
+
+  state->aux.mu_tx_fifo = create_fifo();
+  state->aux.mu_rx_fifo = create_fifo();
+
   tsk->board_data = state;
 
   unsigned long begin = DEVICE_BASE;
@@ -73,15 +111,73 @@ void bcm2837_initialize(struct task_struct *tsk) {
   }
 }
 
-unsigned long handle_mini_uart_read(unsigned long addr, int accsz) {
+unsigned long handle_intctrl_read(unsigned long addr, int accsz) {
   struct bcm2837_state *state = (struct bcm2837_state *)current->board_data;
+  switch (addr) {
+  case IRQ_BASIC_PENDING:
+    return state->intctrl.irq_basic_pending;
+  case IRQ_PENDING_1:
+    return state->intctrl.irq_pending_1;
+  case IRQ_PENDING_2:
+    return state->intctrl.irq_pending_2;
+  case FIQ_CONTROL:
+    return state->intctrl.fiq_control;
+  case ENABLE_IRQS_1:
+    return state->intctrl.enable_irqs_1;
+  case ENABLE_IRQS_2:
+    return state->intctrl.enable_irqs_2;
+  case ENABLE_BASIC_IRQS:
+    return state->intctrl.enable_basic_irqs;
+  case DISABLE_IRQS_1:
+    return state->intctrl.disable_irqs_1;
+  case DISABLE_IRQS_2:
+    return state->intctrl.disable_irqs_2;
+  case DISABLE_BASIC_IRQS:
+    return state->intctrl.disable_basic_irqs;
+  }
+  return 0;
+}
+
+void handle_intctrl_write(unsigned long addr, unsigned long val, int accsz) {
+  struct bcm2837_state *state = (struct bcm2837_state *)current->board_data;
+  switch (addr) {
+  case FIQ_CONTROL:
+    state->intctrl.fiq_control = val;
+  case ENABLE_IRQS_1:
+    state->intctrl.enable_irqs_1 = val;
+  case ENABLE_IRQS_2:
+    state->intctrl.enable_irqs_2 = val;
+  case ENABLE_BASIC_IRQS:
+    state->intctrl.enable_basic_irqs = val;
+  case DISABLE_IRQS_1:
+    state->intctrl.disable_irqs_1 = val;
+  case DISABLE_IRQS_2:
+    state->intctrl.disable_irqs_2 = val;
+  case DISABLE_BASIC_IRQS:
+    state->intctrl.disable_basic_irqs = val;
+  }
+}
+
+unsigned long handle_aux_read(unsigned long addr, int accsz) {
+  struct bcm2837_state *state = (struct bcm2837_state *)current->board_data;
+
+  if ((state->aux.aux_enables & 1) == 0 && ADDR_IN_AUX_MU(addr)) {
+    return 0;
+  }
+
   switch (addr) {
   case AUX_IRQ:
     return state->aux.aux_irq;
   case AUX_ENABLES:
     return state->aux.aux_enables;
   case AUX_MU_IO_REG:
-    return state->aux.aux_mu_io;
+    if (AUX_MU_LCR_REG & 0x8) {
+      return state->aux.aux_mu_io;
+    } else {
+      unsigned long data;
+      dequeue_fifo(state->aux.mu_rx_fifo, &data);
+      return data;
+    }
   case AUX_MU_IER_REG:
     return state->aux.aux_mu_ier;
   case AUX_MU_IIR_REG:
@@ -106,14 +202,22 @@ unsigned long handle_mini_uart_read(unsigned long addr, int accsz) {
   return 0;
 }
 
-void handle_mini_uart_write(unsigned long addr, unsigned long val, int accsz) {
+void handle_aux_write(unsigned long addr, unsigned long val, int accsz) {
   struct bcm2837_state *state = (struct bcm2837_state *)current->board_data;
+
+  if ((state->aux.aux_enables & 1) == 0 && ADDR_IN_AUX_MU(addr)) {
+    return;
+  }
+
   switch (addr) {
   case AUX_ENABLES:
     state->aux.aux_enables = val;
     break;
   case AUX_MU_IO_REG:
-    state->aux.aux_mu_io = val;
+    if (AUX_MU_LCR_REG & 0x8)
+      state->aux.aux_mu_io = val;
+    else
+      enqueue_fifo(state->aux.mu_tx_fifo, val & 0xff);
     break;
   case AUX_MU_IER_REG:
     state->aux.aux_mu_ier = val;
@@ -181,18 +285,22 @@ void handle_systimer_write(unsigned long addr, unsigned long val, int accsz) {
 }
 
 unsigned long bcm2837_mmio_read(unsigned long addr, int accsz) {
-  if (addr >= AUX_IRQ && addr <= AUX_MU_BAUD_REG) {
-    return handle_mini_uart_read(addr, accsz);
-  } else if (addr >= TIMER_CS && addr <= TIMER_C3) {
+  if (ADDR_IN_INTCTRL(addr)) {
+    return handle_intctrl_read(addr, accsz);
+  } else if (ADDR_IN_AUX(addr)) {
+    return handle_aux_read(addr, accsz);
+  } else if (ADDR_IN_SYSTIMER(addr)) {
     return handle_systimer_read(addr, accsz);
   }
   return 0;
 }
 
 void bcm2837_mmio_write(unsigned long addr, unsigned long val, int accsz) {
-  if (addr >= AUX_IRQ && addr <= AUX_MU_BAUD_REG) {
-    handle_mini_uart_write(addr, val, accsz);
-  } else if (addr >= TIMER_CS && addr <= TIMER_C3) {
+  if (ADDR_IN_INTCTRL(addr)) {
+    handle_intctrl_write(addr, val, accsz);
+  } else if (ADDR_IN_AUX(addr)) {
+    handle_aux_write(addr, val, accsz);
+  } else if (ADDR_IN_SYSTIMER(addr)) {
     handle_systimer_write(addr, val, accsz);
   }
 }

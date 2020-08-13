@@ -2,6 +2,7 @@
 
 #include "peripherals/base.h"
 
+#define AUX_IRQ (PBASE + 0x00215000)
 #define AUX_ENABLES (PBASE + 0x00215004)
 #define AUX_MU_IO_REG (PBASE + 0x00215040)
 #define AUX_MU_IER_REG (PBASE + 0x00215044)

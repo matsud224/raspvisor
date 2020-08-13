@@ -70,15 +70,6 @@ const char *sync_error_reasons[] = {
   "BRK instruction execution in AArch64 state.",
 };
 
-#define ESR_EL2_EC_SHIFT     26
-
-#define ESR_EL2_EC_TRAP_WFX       1
-#define ESR_EL2_EC_TRAP_FP_REG    7
-#define ESR_EL2_EC_HVC64          22
-#define ESR_EL2_EC_TRAP_SYSTEM    24
-#define ESR_EL2_EC_TRAP_SVE       25
-#define ESR_EL2_EC_DABT_LOW       36
-
 void handle_trap_wfx() {
   schedule();
   increment_current_pc(4);
@@ -160,10 +151,14 @@ sys_fin:
   return;
 }
 
-void increment_current_pc(int ilen) {
-  struct pt_regs *regs = task_pt_regs(current);
-  regs->pc += ilen;
-}
+#define ESR_EL2_EC_SHIFT     26
+
+#define ESR_EL2_EC_TRAP_WFX       1
+#define ESR_EL2_EC_TRAP_FP_REG    7
+#define ESR_EL2_EC_HVC64          22
+#define ESR_EL2_EC_TRAP_SYSTEM    24
+#define ESR_EL2_EC_TRAP_SVE       25
+#define ESR_EL2_EC_DABT_LOW       36
 
 void handle_sync_exception(unsigned long esr, unsigned long elr,
     unsigned long far, unsigned long hvc_nr) {

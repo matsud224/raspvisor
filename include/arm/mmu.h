@@ -40,6 +40,11 @@
 #define MMU_STAGE2_PAGE_FLAGS                                                  \
   (MM_TYPE_PAGE | MM_STAGE2_ACCESS | MM_STAGE2_SH | MM_STAGE2_AP | MM_STAGE2_MEMATTR)
 
+#define MM_STAGE2_AP_NONE  (0 << 6)
+#define MM_STAGE2_DEVICE_MEMATTR  (0x0 << 2)
+#define MMU_STAGE2_MMIO_PAGE_FLAGS                                             \
+  (MM_TYPE_PAGE | MM_STAGE2_ACCESS | MM_STAGE2_SH | MM_STAGE2_AP_NONE | MM_STAGE2_DEVICE_MEMATTR)
+
 
 #define TCR_T0SZ    (64 - 48)
 #define TCR_TG0_4K  (0 << 14)

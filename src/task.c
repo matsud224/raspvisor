@@ -4,6 +4,8 @@
 #include "sched.h"
 #include "utils.h"
 #include "debug.h"
+#include "bcm2837.h"
+#include "board.h"
 
 struct pt_regs *task_pt_regs(struct task_struct *tsk) {
   unsigned long p = (unsigned long)tsk + THREAD_SIZE - sizeof(struct pt_regs);
@@ -39,11 +41,16 @@ static void prepare_initial_sysregs(void) {
   is_first_call = 0;
 }
 
+void increment_current_pc(int ilen) {
+  struct pt_regs *regs = task_pt_regs(current);
+  regs->pc += ilen;
+}
+
 int create_task(loader_func_t loader, unsigned long arg) {
   preempt_disable();
   struct task_struct *p;
 
-  unsigned long page = allocate_kernel_page();
+  unsigned long page = allocate_page();
   p = (struct task_struct *)page;
   struct pt_regs *childregs = task_pt_regs(p);
 
@@ -58,6 +65,10 @@ int create_task(loader_func_t loader, unsigned long arg) {
   p->state = TASK_RUNNING;
   p->counter = p->priority;
   p->preempt_count = 1; // disable preemtion until schedule_tail
+
+  p->board_ops = &bcm2837_board_ops;
+  if (p->board_ops->initialize)
+    p->board_ops->initialize(p);
 
   prepare_initial_sysregs();
   memcpy((unsigned long)&p->cpu_sysregs, (unsigned long)&initial_sysregs,

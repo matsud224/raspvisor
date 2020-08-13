@@ -181,6 +181,8 @@ _get_sysregs:
   mrs x2, aidr_el1
   stp x1, x2, [x0], #16
   mrs x1, revidr_el1
+  str x1, [x0]
+  /*
   mrs x2, cntfrq_el0
   stp x1, x2, [x0], #16
   mrs x1, cntkctl_el1
@@ -201,6 +203,7 @@ _get_sysregs:
   mrs x1, cntv_tval_el0
   mrs x2, cntvct_el0
   stp x1, x2, [x0], #16
+  */
   ret
 
 .globl do_at

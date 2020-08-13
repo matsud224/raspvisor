@@ -32,7 +32,7 @@ int test_program_loader (unsigned long arg, unsigned long *pc,
   }
   unsigned long entry_point = func - begin;
 
-  unsigned long code_page = allocate_user_page(current, 0);
+  unsigned long code_page = allocate_task_page(current, 0);
   if (code_page == 0) {
     return -1;
   }

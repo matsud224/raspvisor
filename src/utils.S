@@ -206,23 +206,44 @@ _get_sysregs:
   */
   ret
 
-.globl generate_vfiq
-generate_vfiq:
+.globl assert_vfiq
+assert_vfiq:
   mrs x0, hcr_el2
   and x1, x0, #0x40
   msr hcr_el2, x1
   ret
 
-.globl generate_virq
-generate_virq:
+.globl assert_virq
+assert_virq:
   mrs x0, hcr_el2
   and x1, x0, #0x80
   msr hcr_el2, x1
   ret
 
-.globl generate_vserror
-generate_vserror:
+.globl assert_vserror
+assert_vserror:
   mrs x0, hcr_el2
   and x1, x0, #0x100
+  msr hcr_el2, x1
+  ret
+
+.globl clear_vfiq
+clear_vfiq:
+  mrs x0, hcr_el2
+  bic x1, x0, #0x40
+  msr hcr_el2, x1
+  ret
+
+.globl clear_virq
+clear_virq:
+  mrs x0, hcr_el2
+  bic x1, x0, #0x80
+  msr hcr_el2, x1
+  ret
+
+.globl clear_vserror
+clear_vserror:
+  mrs x0, hcr_el2
+  bic x1, x0, #0x100
   msr hcr_el2, x1
   ret

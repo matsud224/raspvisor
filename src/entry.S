@@ -43,6 +43,9 @@
   .endm
 
   .macro  kernel_exit
+  ldr x0, current
+  bl set_cpu_virtual_interrupt
+
   ldp x22, x23, [sp, #16 * 16]
   ldp x30, x21, [sp, #16 * 15]
 

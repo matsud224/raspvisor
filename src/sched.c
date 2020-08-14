@@ -49,9 +49,23 @@ void schedule(void) {
   _schedule();
 }
 
-void set_cpu_sysregs(struct task_struct *task) {
-  set_stage2_pgd(task->mm.first_table, task->pid);
-  _set_sysregs(&task->cpu_sysregs);
+void set_cpu_sysregs(struct task_struct *tsk) {
+  set_stage2_pgd(tsk->mm.first_table, tsk->pid);
+  _set_sysregs(&tsk->cpu_sysregs);
+}
+
+void set_cpu_virtual_interrupt(struct task_struct *tsk) {
+  if (HAVE_FUNC(tsk->board_ops, is_irq_asserted) &&
+    tsk->board_ops->is_irq_asserted(current))
+    assert_virq();
+  else
+    clear_virq();
+
+  if (HAVE_FUNC(tsk->board_ops, is_fiq_asserted) &&
+    tsk->board_ops->is_fiq_asserted(current))
+    assert_vfiq();
+  else
+    clear_vfiq();
 }
 
 void switch_to(struct task_struct *next) {
@@ -61,9 +75,6 @@ void switch_to(struct task_struct *next) {
   current = next;
 
   set_cpu_sysregs(current);
-  if (HAVE_FUNC(current->board_ops, is_interrupt_required))
-    if (current->board_ops->is_interrupt_required(current))
-      generate_virq();
 
   cpu_switch_to(prev, next);
 }

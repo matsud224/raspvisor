@@ -9,28 +9,21 @@
 #include "peripherals/irq.h"
 
 struct bcm2837_state {
-  struct intctrl_regs {
-    uint8_t irq_basic_pending;
-    uint8_t irq_pending_1;
-    uint8_t irq_pending_2;
+  struct {
+    uint8_t irq_enabled[72]; // IRQ 0-64, ARM Timer, ARM Mailbox, ...
     uint8_t fiq_control;
-    uint8_t enable_irqs_1;
-    uint8_t enable_irqs_2;
-    uint8_t enable_basic_irqs;
-    uint8_t disable_irqs_1;
-    uint8_t disable_irqs_2;
-    uint8_t disable_basic_irqs;
+    uint32_t irqs_1_enabled;
+    uint32_t irqs_2_enabled;
+    uint8_t  basic_irqs_enabled;
   } intctrl;
 
-  struct aux_peripherals_regs {
+  struct {
     struct fifo *mu_tx_fifo;
     struct fifo *mu_rx_fifo;
-    int mu_rx_overrun;
-    uint8_t  aux_irq;
+    int      mu_rx_overrun;
     uint8_t  aux_enables;
     uint8_t  aux_mu_io;
     uint8_t  aux_mu_ier;
-    uint8_t  aux_mu_iir;
     uint8_t  aux_mu_lcr;
     uint8_t  aux_mu_mcr;
     uint8_t  aux_mu_msr;
@@ -39,10 +32,9 @@ struct bcm2837_state {
     uint16_t aux_mu_baud;
   } aux;
 
-  struct systimer_regs {
+  struct {
     uint32_t cs;
-    uint32_t clo;
-    uint32_t chi;
+    uint64_t counter;
     uint32_t c0;
     uint32_t c1;
     uint32_t c2;
@@ -52,23 +44,16 @@ struct bcm2837_state {
 
 const struct bcm2837_state initial_state = {
   .intctrl = {
-    .irq_basic_pending  = 0x0,
-    .irq_pending_1      = 0x0,
-    .irq_pending_2      = 0x0,
     .fiq_control        = 0x0,
-    .enable_irqs_1      = 0x0,
-    .enable_irqs_2      = 0x0,
-    .enable_basic_irqs  = 0x0,
-    .disable_irqs_1     = 0x0,
-    .disable_irqs_2     = 0x0,
-    .disable_basic_irqs = 0x0,
+    .irqs_1_enabled     = 0x0,
+    .irqs_2_enabled     = 0x0,
+    .basic_irqs_enabled = 0x0,
   },
   .aux = {
-    .aux_irq        = 0x0,
+    .mu_rx_overrun  = 0,
     .aux_enables    = 0x0,
     .aux_mu_io      = 0x0,
     .aux_mu_ier     = 0x0,
-    .aux_mu_iir     = 0xc1,
     .aux_mu_lcr     = 0x0,
     .aux_mu_mcr     = 0x0,
     .aux_mu_msr     = 0x10,
@@ -78,8 +63,7 @@ const struct bcm2837_state initial_state = {
   },
   .systimer = {
     .cs  = 0x0,
-    .clo = 0x0,
-    .chi = 0x0,
+    .counter = 0x0,
     .c0  = 0x0,
     .c1  = 0x0,
     .c2  = 0x0,
@@ -93,13 +77,13 @@ const struct bcm2837_state initial_state = {
 #define ADDR_IN_SYSTIMER(a) ((a) >= TIMER_CS && (a) <= TIMER_C3)
 
 void bcm2837_initialize(struct task_struct *tsk) {
-  struct bcm2837_state *state = (struct bcm2837_state *)allocate_page();
-  *state = initial_state;
+  struct bcm2837_state *s = (struct bcm2837_state *)allocate_page();
+  *s = initial_state;
 
-  state->aux.mu_tx_fifo = create_fifo();
-  state->aux.mu_rx_fifo = create_fifo();
+  s->aux.mu_tx_fifo = create_fifo();
+  s->aux.mu_rx_fifo = create_fifo();
 
-  tsk->board_data = state;
+  tsk->board_data = s;
 
   unsigned long begin = DEVICE_BASE;
   unsigned long end = PHYS_MEMORY_SIZE - SECTION_SIZE;
@@ -108,243 +92,287 @@ void bcm2837_initialize(struct task_struct *tsk) {
   }
 }
 
-unsigned long handle_intctrl_read(unsigned long addr, int accsz) {
-  struct bcm2837_state *state = (struct bcm2837_state *)current->board_data;
+unsigned long handle_aux_read(struct task_struct *, unsigned long);
+
+unsigned long handle_intctrl_read(struct task_struct *tsk, unsigned long addr) {
+#define BIT(v, n) ((v) & (1 << (n)))
+  struct bcm2837_state *s = (struct bcm2837_state *)tsk->board_data;
   switch (addr) {
   case IRQ_BASIC_PENDING:
-    return state->intctrl.irq_basic_pending;
+    {
+      int pending1 = handle_intctrl_read(tsk, IRQ_PENDING_1) != 0;
+      int pending2 = handle_intctrl_read(tsk, IRQ_PENDING_2) != 0;
+      return (pending1 << 8) | (pending2 << 9);
+    }
   case IRQ_PENDING_1:
-    return state->intctrl.irq_pending_1;
+    {
+      unsigned long systimer_match1 =
+        BIT(s->intctrl.irqs_1_enabled, 1) && (s->systimer.cs & 0x2);
+      unsigned long systimer_match3 =
+        BIT(s->intctrl.irqs_1_enabled, 3) && (s->systimer.cs & 0x8);
+      unsigned long int uart_int =
+        BIT(s->intctrl.irqs_1_enabled, (57-32)) && (handle_aux_read(tsk, AUX_IRQ) & 0x1);
+      return (systimer_match1 << 1) | (systimer_match3 << 3) |
+        (uart_int << 57);
+    }
   case IRQ_PENDING_2:
-    return state->intctrl.irq_pending_2;
+    return 0;
   case FIQ_CONTROL:
-    return state->intctrl.fiq_control;
+    return s->intctrl.fiq_control;
   case ENABLE_IRQS_1:
-    return state->intctrl.enable_irqs_1;
+    return s->intctrl.irqs_1_enabled;
   case ENABLE_IRQS_2:
-    return state->intctrl.enable_irqs_2;
+    return s->intctrl.irqs_2_enabled;
   case ENABLE_BASIC_IRQS:
-    return state->intctrl.enable_basic_irqs;
+    return s->intctrl.basic_irqs_enabled;
   case DISABLE_IRQS_1:
-    return state->intctrl.disable_irqs_1;
+    return ~s->intctrl.irqs_1_enabled;
   case DISABLE_IRQS_2:
-    return state->intctrl.disable_irqs_2;
+    return ~s->intctrl.irqs_2_enabled;
   case DISABLE_BASIC_IRQS:
-    return state->intctrl.disable_basic_irqs;
+    return ~s->intctrl.basic_irqs_enabled;
   }
   return 0;
 }
 
-void handle_intctrl_write(unsigned long addr, unsigned long val, int accsz) {
-  struct bcm2837_state *state = (struct bcm2837_state *)current->board_data;
+void handle_intctrl_write(struct task_struct *tsk, unsigned long addr, unsigned long val) {
+  struct bcm2837_state *s = (struct bcm2837_state *)tsk->board_data;
   switch (addr) {
   case FIQ_CONTROL:
-    state->intctrl.fiq_control = val;
+    s->intctrl.fiq_control = val;
   case ENABLE_IRQS_1:
-    state->intctrl.enable_irqs_1 = val;
+    s->intctrl.irqs_1_enabled |= val;
   case ENABLE_IRQS_2:
-    state->intctrl.enable_irqs_2 = val;
+    s->intctrl.irqs_2_enabled |= val;
   case ENABLE_BASIC_IRQS:
-    state->intctrl.enable_basic_irqs = val;
+    s->intctrl.basic_irqs_enabled |= val;
   case DISABLE_IRQS_1:
-    state->intctrl.disable_irqs_1 = val;
+    s->intctrl.irqs_1_enabled &= ~val;
   case DISABLE_IRQS_2:
-    state->intctrl.disable_irqs_2 = val;
+    s->intctrl.irqs_2_enabled &= ~val;
   case DISABLE_BASIC_IRQS:
-    state->intctrl.disable_basic_irqs = val;
+    s->intctrl.basic_irqs_enabled &= ~val;
   }
 }
 
 #define LCR_DLAB 0x80
 
-unsigned long handle_aux_read(unsigned long addr, int accsz) {
-  struct bcm2837_state *state = (struct bcm2837_state *)current->board_data;
+unsigned long handle_aux_read(struct task_struct *tsk, unsigned long addr) {
+  struct bcm2837_state *s = (struct bcm2837_state *)tsk->board_data;
 
-  if ((state->aux.aux_enables & 1) == 0 && ADDR_IN_AUX_MU(addr)) {
+  if ((s->aux.aux_enables & 1) == 0 && ADDR_IN_AUX_MU(addr)) {
     return 0;
   }
 
   switch (addr) {
   case AUX_IRQ:
-    return state->aux.aux_irq;
+    {
+      int mu_pending = (s->aux.aux_enables & 0x1) &&
+        ~(handle_aux_read(tsk, AUX_MU_IIR_REG) & 0x1);
+      return mu_pending;
+    }
   case AUX_ENABLES:
-    return state->aux.aux_enables;
+    return s->aux.aux_enables;
   case AUX_MU_IO_REG:
-    if (state->aux.aux_mu_lcr & LCR_DLAB) {
-      state->aux.aux_mu_lcr &= ~LCR_DLAB;
-      return state->aux.aux_mu_baud & 0xff;
+    if (s->aux.aux_mu_lcr & LCR_DLAB) {
+      s->aux.aux_mu_lcr &= ~LCR_DLAB;
+      return s->aux.aux_mu_baud & 0xff;
     } else {
       unsigned long data;
-      dequeue_fifo(state->aux.mu_rx_fifo, &data);
+      dequeue_fifo(s->aux.mu_rx_fifo, &data);
       return data;
     }
   case AUX_MU_IER_REG:
-    if (state->aux.aux_mu_lcr & LCR_DLAB) {
-      return state->aux.aux_mu_baud >> 8;
+    if (s->aux.aux_mu_lcr & LCR_DLAB) {
+      return s->aux.aux_mu_baud >> 8;
     } else {
-      return state->aux.aux_mu_ier;
+      return s->aux.aux_mu_ier;
     }
   case AUX_MU_IIR_REG:
-    return state->aux.aux_mu_iir;
+    {
+      int tx_int = (s->aux.aux_mu_ier & 0x2) && is_empty_fifo(s->aux.mu_tx_fifo);
+      int rx_int = (s->aux.aux_mu_ier & 0x1) && !is_empty_fifo(s->aux.mu_rx_fifo);
+      int int_id = tx_int | (rx_int << 1);
+      if (int_id == 0x3)
+        int_id = 0x1;
+      return (!int_id) | (int_id << 1) | (0x3 << 6);
+    }
   case AUX_MU_LCR_REG:
-    return state->aux.aux_mu_lcr;
+    return s->aux.aux_mu_lcr;
   case AUX_MU_MCR_REG:
-    return state->aux.aux_mu_mcr;
+    return s->aux.aux_mu_mcr;
   case AUX_MU_LSR_REG:
     {
-    int dready = !is_empty_fifo(state->aux.mu_rx_fifo);
-    int rx_overrun = state->aux.mu_rx_overrun;
-    int tx_empty = !is_full_fifo(state->aux.mu_tx_fifo);
-    int tx_idle = is_empty_fifo(state->aux.mu_tx_fifo);
-    state->aux.mu_rx_overrun = 0;
-    return dready | (rx_overrun << 1) | (tx_empty << 5) | (tx_idle << 6);
+      int dready = !is_empty_fifo(s->aux.mu_rx_fifo);
+      int rx_overrun = s->aux.mu_rx_overrun;
+      int tx_empty = !is_full_fifo(s->aux.mu_tx_fifo);
+      int tx_idle = is_empty_fifo(s->aux.mu_tx_fifo);
+      s->aux.mu_rx_overrun = 0;
+      return dready | (rx_overrun << 1) | (tx_empty << 5) | (tx_idle << 6);
     }
   case AUX_MU_MSR_REG:
-    return state->aux.aux_mu_msr;
+    return s->aux.aux_mu_msr;
   case AUX_MU_SCRATCH:
-    return state->aux.aux_mu_scratch;
+    return s->aux.aux_mu_scratch;
   case AUX_MU_CNTL_REG:
-    return state->aux.aux_mu_cntl;
+    return s->aux.aux_mu_cntl;
   case AUX_MU_STAT_REG:
     {
 #define MIN(a,b) ((a)<(b)?(a):(b))
-    int sym_avail = !is_empty_fifo(state->aux.mu_rx_fifo);
-    int space_avail = !is_full_fifo(state->aux.mu_tx_fifo);
-    int rx_idle = is_empty_fifo(state->aux.mu_rx_fifo);
-    int tx_idle = !is_empty_fifo(state->aux.mu_tx_fifo);
-    int rx_overrun = state->aux.mu_rx_overrun;
-    int tx_full = !space_avail;
-    int tx_empty = is_empty_fifo(state->aux.mu_tx_fifo);
-    int tx_done = rx_idle & tx_empty;
-    int rx_fifo_level = MIN(used_of_fifo(state->aux.mu_rx_fifo), 8);
-    int tx_fifo_level = MIN(used_of_fifo(state->aux.mu_tx_fifo), 8);
-    return sym_avail | (space_avail << 1) | (rx_idle << 2) |
-      (tx_idle << 3) | (rx_overrun << 4) | (tx_full << 5) |
-      (tx_empty << 8) | (tx_done << 9) | (rx_fifo_level << 16) |
-      (tx_fifo_level << 24);
+      int sym_avail = !is_empty_fifo(s->aux.mu_rx_fifo);
+      int space_avail = !is_full_fifo(s->aux.mu_tx_fifo);
+      int rx_idle = is_empty_fifo(s->aux.mu_rx_fifo);
+      int tx_idle = !is_empty_fifo(s->aux.mu_tx_fifo);
+      int rx_overrun = s->aux.mu_rx_overrun;
+      int tx_full = !space_avail;
+      int tx_empty = is_empty_fifo(s->aux.mu_tx_fifo);
+      int tx_done = rx_idle & tx_empty;
+      int rx_fifo_level = MIN(used_of_fifo(s->aux.mu_rx_fifo), 8);
+      int tx_fifo_level = MIN(used_of_fifo(s->aux.mu_tx_fifo), 8);
+      return sym_avail | (space_avail << 1) | (rx_idle << 2) |
+        (tx_idle << 3) | (rx_overrun << 4) | (tx_full << 5) |
+        (tx_empty << 8) | (tx_done << 9) | (rx_fifo_level << 16) |
+        (tx_fifo_level << 24);
     }
   case AUX_MU_BAUD_REG:
-    return state->aux.aux_mu_baud;
+    return s->aux.aux_mu_baud;
   }
   return 0;
 }
 
-void handle_aux_write(unsigned long addr, unsigned long val, int accsz) {
-  struct bcm2837_state *state = (struct bcm2837_state *)current->board_data;
+void handle_aux_write(struct task_struct *tsk, unsigned long addr, unsigned long val) {
+  struct bcm2837_state *s = (struct bcm2837_state *)tsk->board_data;
 
-  if ((state->aux.aux_enables & 1) == 0 && ADDR_IN_AUX_MU(addr)) {
+  if ((s->aux.aux_enables & 1) == 0 && ADDR_IN_AUX_MU(addr)) {
     return;
   }
 
   switch (addr) {
   case AUX_ENABLES:
-    state->aux.aux_enables = val;
+    s->aux.aux_enables = val;
     break;
   case AUX_MU_IO_REG:
-    if (state->aux.aux_mu_lcr & LCR_DLAB) {
-      state->aux.aux_mu_lcr &= ~LCR_DLAB;
-      state->aux.aux_mu_baud =
-        (state->aux.aux_mu_baud & 0xff00) | (val & 0xff);
+    if (s->aux.aux_mu_lcr & LCR_DLAB) {
+      s->aux.aux_mu_lcr &= ~LCR_DLAB;
+      s->aux.aux_mu_baud =
+        (s->aux.aux_mu_baud & 0xff00) | (val & 0xff);
     } else {
-      enqueue_fifo(state->aux.mu_tx_fifo, val & 0xff);
+      enqueue_fifo(s->aux.mu_tx_fifo, val & 0xff);
     }
     break;
   case AUX_MU_IER_REG:
-    if (state->aux.aux_mu_lcr & LCR_DLAB) {
-      state->aux.aux_mu_baud =
-        (state->aux.aux_mu_baud & 0xff) | ((val & 0xff) << 8);
+    if (s->aux.aux_mu_lcr & LCR_DLAB) {
+      s->aux.aux_mu_baud =
+        (s->aux.aux_mu_baud & 0xff) | ((val & 0xff) << 8);
     } else {
-      state->aux.aux_mu_ier = val;
+      s->aux.aux_mu_ier = val;
     }
     break;
   case AUX_MU_IIR_REG:
     if (val & 0x2)
-      clear_fifo(state->aux.mu_rx_fifo);
+      clear_fifo(s->aux.mu_rx_fifo);
     if (val & 0x4)
-      clear_fifo(state->aux.mu_tx_fifo);
+      clear_fifo(s->aux.mu_tx_fifo);
     break;
   case AUX_MU_LCR_REG:
-    state->aux.aux_mu_lcr = val;
+    s->aux.aux_mu_lcr = val;
     break;
   case AUX_MU_MCR_REG:
-    state->aux.aux_mu_mcr = val;
+    s->aux.aux_mu_mcr = val;
     break;
   case AUX_MU_SCRATCH:
-    state->aux.aux_mu_scratch = val;
+    s->aux.aux_mu_scratch = val;
     break;
   case AUX_MU_CNTL_REG:
-    state->aux.aux_mu_cntl = val;
+    s->aux.aux_mu_cntl = val;
     break;
   case AUX_MU_BAUD_REG:
-    state->aux.aux_mu_baud = val;
+    s->aux.aux_mu_baud = val;
     break;
   }
 }
 
-unsigned long handle_systimer_read(unsigned long addr, int accsz) {
-  struct bcm2837_state *state = (struct bcm2837_state *)current->board_data;
+unsigned long handle_systimer_read(struct task_struct *tsk, unsigned long addr) {
+  struct bcm2837_state *s = (struct bcm2837_state *)tsk->board_data;
   switch (addr) {
   case TIMER_CS:
-    return state->systimer.cs;
+    return s->systimer.cs;
   case TIMER_CLO:
-    return state->systimer.clo;
+    return s->systimer.counter & 0xffffffff;
   case TIMER_CHI:
-    return state->systimer.chi;
+    return s->systimer.counter >> 32;
   case TIMER_C0:
-    return state->systimer.c0;
+    return s->systimer.c0;
   case TIMER_C1:
-    return state->systimer.c1;
+    return s->systimer.c1;
   case TIMER_C2:
-    return state->systimer.c2;
+    return s->systimer.c2;
   case TIMER_C3:
-    return state->systimer.c3;
+    return s->systimer.c3;
   }
   return 0;
 }
 
-void handle_systimer_write(unsigned long addr, unsigned long val, int accsz) {
-  struct bcm2837_state *state = (struct bcm2837_state *)current->board_data;
+void handle_systimer_write(struct task_struct *tsk, unsigned long addr, unsigned long val) {
+  struct bcm2837_state *s = (struct bcm2837_state *)tsk->board_data;
   switch (addr) {
   case TIMER_CS:
-    state->systimer.cs = val;
-  case TIMER_CLO:
-    state->systimer.clo = val;
-  case TIMER_CHI:
-    state->systimer.chi = val;
+    s->systimer.cs &= ~val;
   case TIMER_C0:
-    state->systimer.c0 = val;
+    s->systimer.c0 = val;
   case TIMER_C1:
-    state->systimer.c1 = val;
+    s->systimer.c1 = val;
   case TIMER_C2:
-    state->systimer.c2 = val;
+    s->systimer.c2 = val;
   case TIMER_C3:
-    state->systimer.c3 = val;
+    s->systimer.c3 = val;
   }
 }
 
-unsigned long bcm2837_mmio_read(unsigned long addr, int accsz) {
+unsigned long bcm2837_mmio_read(struct task_struct *tsk, unsigned long addr) {
   if (ADDR_IN_INTCTRL(addr)) {
-    return handle_intctrl_read(addr, accsz);
+    return handle_intctrl_read(tsk, addr);
   } else if (ADDR_IN_AUX(addr)) {
-    return handle_aux_read(addr, accsz);
+    return handle_aux_read(tsk, addr);
   } else if (ADDR_IN_SYSTIMER(addr)) {
-    return handle_systimer_read(addr, accsz);
+    return handle_systimer_read(tsk, addr);
   }
   return 0;
 }
 
-void bcm2837_mmio_write(unsigned long addr, unsigned long val, int accsz) {
+void bcm2837_mmio_write(struct task_struct *tsk, unsigned long addr, unsigned long val) {
   if (ADDR_IN_INTCTRL(addr)) {
-    handle_intctrl_write(addr, val, accsz);
+    handle_intctrl_write(tsk, addr, val);
   } else if (ADDR_IN_AUX(addr)) {
-    handle_aux_write(addr, val, accsz);
+    handle_aux_write(tsk, addr, val);
   } else if (ADDR_IN_SYSTIMER(addr)) {
-    handle_systimer_write(addr, val, accsz);
+    handle_systimer_write(tsk, addr, val);
   }
+}
+
+void bcm2837_timer_tick(struct task_struct *tsk) {
+  struct bcm2837_state *s = (struct bcm2837_state *)tsk->board_data;
+
+  s->systimer.counter++;
+
+  uint32_t clo = s->systimer.counter & 0xffff;
+  int matched = (clo == s->systimer.c0) |
+    ((clo == s->systimer.c1) << 1) |
+    ((clo == s->systimer.c2) << 2) |
+    ((clo == s->systimer.c3) << 3);
+
+  int fired = (~s->systimer.cs) & matched;
+  s->systimer.cs |= fired;
+}
+
+int bcm2837_is_interrupt_required(struct task_struct *tsk) {
+  return handle_intctrl_read(tsk, IRQ_BASIC_PENDING) != 0;
 }
 
 const struct board_ops bcm2837_board_ops = {
   .initialize = bcm2837_initialize,
   .mmio_read  = bcm2837_mmio_read,
   .mmio_write = bcm2837_mmio_write,
+  .timer_tick = bcm2837_timer_tick,
+  .is_interrupt_required = bcm2837_is_interrupt_required,
 };

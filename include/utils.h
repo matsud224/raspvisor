@@ -12,3 +12,6 @@ extern unsigned long get_el(void);
 extern void set_stage2_pgd(unsigned long pgd, unsigned long vmid);
 extern void _set_sysregs(struct cpu_sysregs *);
 extern void _get_sysregs(struct cpu_sysregs *);
+extern void generate_vfiq(void);
+extern void generate_virq(void);
+extern void generate_vserror(void);

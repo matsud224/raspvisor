@@ -2,6 +2,8 @@
 #include "irq.h"
 #include "mm.h"
 #include "utils.h"
+#include "debug.h"
+#include "board.h"
 
 static struct task_struct init_task = INIT_TASK;
 struct task_struct *current = &(init_task);
@@ -57,7 +59,12 @@ void switch_to(struct task_struct *next) {
     return;
   struct task_struct *prev = current;
   current = next;
-  set_cpu_sysregs(next);
+
+  set_cpu_sysregs(current);
+  if (current->board_ops->is_interrupt_required)
+    if (current->board_ops->is_interrupt_required(current))
+      generate_virq();
+
   cpu_switch_to(prev, next);
 }
 
@@ -69,9 +76,7 @@ void timer_tick() {
     return;
   }
   current->counter = 0;
-  enable_irq();
   _schedule();
-  disable_irq();
 }
 
 void exit_task() {

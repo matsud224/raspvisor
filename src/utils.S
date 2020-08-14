@@ -206,8 +206,23 @@ _get_sysregs:
   */
   ret
 
-.globl do_at
-do_at:
-  at s12e1r, x0
-  mrs x0, par_el1
+.globl generate_vfiq
+generate_vfiq:
+  mrs x0, hcr_el2
+  and x1, x0, #0x40
+  msr hcr_el2, x1
+  ret
+
+.globl generate_virq
+generate_virq:
+  mrs x0, hcr_el2
+  and x1, x0, #0x80
+  msr hcr_el2, x1
+  ret
+
+.globl generate_vserror
+generate_vserror:
+  mrs x0, hcr_el2
+  and x1, x0, #0x100
+  msr hcr_el2, x1
   ret

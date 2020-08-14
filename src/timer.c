@@ -1,6 +1,7 @@
 #include "peripherals/timer.h"
 #include "sched.h"
 #include "utils.h"
+#include "debug.h"
 
 const unsigned int interval = 20000;
 unsigned int curVal = 0;

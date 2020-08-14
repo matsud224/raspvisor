@@ -109,17 +109,15 @@ int handle_mem_abort(unsigned long addr, unsigned long esr) {
   } else if (dfsc >> 2 == 0x3) {
     // permission fault (mmio)
     const struct board_ops *ops = current->board_ops;
-    if (ops) {
-      //int sas = (esr >> 22) & 0x3;
-      int srt = (esr >> 16) & 0x1f;
-      int wnr = (esr >> 6) & 0x1;
-      if (wnr == 0) {
-        if (ops->mmio_read)
-          regs->regs[srt] = ops->mmio_read(current, addr);
-      } else {
-        if (ops->mmio_write)
-          ops->mmio_write(current, addr, regs->regs[srt]);
-      }
+    //int sas = (esr >> 22) & 0x3;
+    int srt = (esr >> 16) & 0x1f;
+    int wnr = (esr >> 6) & 0x1;
+    if (wnr == 0) {
+      if (HAVE_FUNC(ops, mmio_read))
+        regs->regs[srt] = ops->mmio_read(current, addr);
+    } else {
+      if (HAVE_FUNC(ops, mmio_write))
+        ops->mmio_write(current, addr, regs->regs[srt]);
     }
 
     increment_current_pc(4);

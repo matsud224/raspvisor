@@ -2,6 +2,8 @@
 
 #include "sched.h"
 
+#define HAVE_FUNC(ops, func, ...) ((ops) && ((ops)->func))
+
 struct board_ops {
   void (*initialize)(struct task_struct *);
   unsigned long (*mmio_read)(struct task_struct *, unsigned long);

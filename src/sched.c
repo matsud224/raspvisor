@@ -61,7 +61,7 @@ void switch_to(struct task_struct *next) {
   current = next;
 
   set_cpu_sysregs(current);
-  if (current->board_ops->is_interrupt_required)
+  if (HAVE_FUNC(current->board_ops, is_interrupt_required))
     if (current->board_ops->is_interrupt_required(current))
       generate_virq();
 

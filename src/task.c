@@ -67,7 +67,7 @@ int create_task(loader_func_t loader, unsigned long arg) {
   p->preempt_count = 1; // disable preemtion until schedule_tail
 
   p->board_ops = &bcm2837_board_ops;
-  if (p->board_ops->initialize)
+  if (HAVE_FUNC(p->board_ops, initialize))
     p->board_ops->initialize(p);
 
   prepare_initial_sysregs();

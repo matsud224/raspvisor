@@ -130,7 +130,7 @@ int fat32_get_handle(struct fat32_fs *fat32) {
                         boot->BPB_BytsPerSec - 1) / boot->BPB_BytsPerSec;
   fat32->datastart = fat32->rootstart + fat32->rootsectors;
   fat32->datasectors = boot->BPB_TotSec32 - fat32->datastart;
-  fat32->first_lba = first_lba;
+  fat32->volume_first = first_lba;
   if (fat32->datasectors / boot->BPB_SecPerClus < 65526 ||
       !fat32_is_valid_boot(boot)) {
     WARN("Bad fat32 filesystem.");
@@ -146,7 +146,7 @@ static uint32_t fatent_read(struct fat32_fs *fat32, uint32_t index) {
   struct fat32_boot *boot = &(fat32->boot);
   uint32_t sector = fat32->fatstart + (index * 4 / boot->BPB_BytsPerSec);
   uint32_t offset = index * 4 % boot->BPB_BytsPerSec;
-  uint8_t *bbuf = alloc_and_readblock(sector + fat32->first_lba);
+  uint8_t *bbuf = alloc_and_readblock(sector + fat32->volume_first);
   uint32_t entry = *((uint32_t *)(bbuf + offset)) & 0x0fffffff;
   free_page(bbuf);
   return entry;
@@ -166,7 +166,7 @@ static uint32_t walk_cluster_chain(struct fat32_fs *fat32, uint32_t offset, uint
     if (prevsector != sector) {
       if (bbuf != NULL)
         free_page(bbuf);
-      bbuf = alloc_and_readblock(sector + fat32->first_lba);
+      bbuf = alloc_and_readblock(sector + fat32->volume_first);
     }
     cluster = *((uint32_t *)(bbuf + offset)) & 0x0fffffff;
     if (!is_active_cluster(cluster)) {
@@ -284,7 +284,7 @@ static int fat32_lookup_main(struct fat32_file *fatfile, const char *name, struc
 
   for (int blkno = fat32_firstblk(fat32, current_cluster, 0);
        is_active_cluster(current_cluster);) {
-    bbuf = alloc_and_readblock(blkno + fat32->first_lba);
+    bbuf = alloc_and_readblock(blkno + fat32->volume_first);
 
     for (uint32_t i = 0; i < BLOCKSIZE; i += sizeof(struct fat32_dent)) {
       struct fat32_dent *dent = (struct fat32_dent *)(bbuf + i);
@@ -361,7 +361,7 @@ int fat32_read(struct fat32_file *fatfile, void *buf, unsigned long offset, size
   for (int blkno = fat32_firstblk(fat32, current_cluster, offset);
        remain > 0 && is_active_cluster(current_cluster);
        blkno = fat32_nextblk(fat32, blkno, &current_cluster)) {
-    uint8_t *bbuf = alloc_and_readblock(blkno + fat32->first_lba);
+    uint8_t *bbuf = alloc_and_readblock(blkno + fat32->volume_first);
     uint32_t copylen = MIN(BLOCKSIZE - inblk_off, remain);
     memcpy(buf, bbuf + inblk_off, copylen);
     free_page(bbuf);

@@ -60,7 +60,7 @@ struct fat32_fs {
   uint32_t rootsectors;
   uint32_t datastart;
   uint32_t datasectors;
-  uint32_t first_lba;
+  uint32_t volume_first;
   struct fat32_file root;
 };
 

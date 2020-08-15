@@ -64,9 +64,6 @@ struct fat32_lfnent {
 #define RESERVED_CLUSTER 1
 #define BAD_CLUSTER 0x0FFFFFF7
 
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
-#define MAX(a, b) ((a) > (b) ? (a) : (b))
-
 int strncmp(const char *s1, const char *s2, size_t n) {
   size_t i;
   for(i=0; i<n && *s1 && (*s1==*s2); i++, s1++, s2++);

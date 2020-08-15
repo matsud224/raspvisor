@@ -24,6 +24,7 @@
  */
 
 #include "peripherals/timer.h"
+#include "utils.h"
 
 /**
  * Wait N CPU cycles (ARM CPU only)

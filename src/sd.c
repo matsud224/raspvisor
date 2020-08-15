@@ -125,7 +125,7 @@ int sd_status(unsigned int mask) {
   int cnt = 500000;
   while ((get32(EMMC_STATUS) & mask) &&
       !(get32(EMMC_INTERRUPT) & INT_ERROR_MASK) && cnt--)
-    wait_msec(1);
+    wait_msec_st(1);
   return (cnt <= 0 || (get32(EMMC_INTERRUPT) & INT_ERROR_MASK)) ?
     SD_ERROR : SD_OK;
 }
@@ -137,7 +137,7 @@ int sd_int(unsigned int mask) {
   unsigned int r, m = mask | INT_ERROR_MASK;
   int cnt = 1000000;
   while (!(get32(EMMC_INTERRUPT) & m) && cnt--)
-    wait_msec(1);
+    wait_msec_st(1);
   r = get32(EMMC_INTERRUPT);
   if (cnt <= 0 || (r & INT_CMD_TIMEOUT) || (r & INT_DATA_TIMEOUT)) {
     put32(EMMC_INTERRUPT, r);
@@ -170,16 +170,16 @@ int sd_cmd(unsigned int code, unsigned int arg) {
     sd_err = SD_TIMEOUT;
     return 0;
   }
-  INFO("EMMC: Sending command %x arg %x", code, arg);
+  //INFO("EMMC: Sending command %x arg %x", code, arg);
   put32(EMMC_INTERRUPT, get32(EMMC_INTERRUPT));
   put32(EMMC_ARG1, arg);
   put32(EMMC_CMDTM, code);
   if (code == CMD_SEND_OP_COND)
-    wait_msec(1000);
+    wait_msec_st(1000);
   else if (code == CMD_SEND_IF_COND || code == CMD_APP_CMD)
-    wait_msec(100);
+    wait_msec_st(100);
   if ((r = sd_int(INT_CMD_DONE))) {
-    WARN("ERROR: failed to send EMMC command");
+    WARN("ERROR: failed to send EMMC command(%d)",r);
     sd_err = r;
     return 0;
   }
@@ -215,7 +215,7 @@ int sd_readblock(unsigned int lba, unsigned char *buffer, unsigned int num) {
   int r, c = 0, d;
   if (num < 1)
     num = 1;
-  INFO("sd_readblock lba %x num %x", lba, num);
+  //INFO("sd_readblock lba %x num %x", lba, num);
   if (sd_status(SR_DAT_INHIBIT)) {
     sd_err = SD_TIMEOUT;
     return 0;
@@ -263,14 +263,14 @@ int sd_clk(unsigned int f) {
   unsigned int d, c = 41666666 / f, x, s = 32, h = 0;
   int cnt = 100000;
   while ((get32(EMMC_STATUS) & (SR_CMD_INHIBIT | SR_DAT_INHIBIT)) && cnt--)
-    wait_msec(1);
+    wait_msec_st(1);
   if (cnt <= 0) {
     WARN("ERROR: timeout waiting for inhibit flag");
     return SD_ERROR;
   }
 
   put32(EMMC_CONTROL1 , get32(EMMC_CONTROL1) & ~C1_CLK_EN);
-  wait_msec(10);
+  wait_msec_st(10);
   x = c - 1;
   if (!x)
     s = 0;
@@ -308,17 +308,17 @@ int sd_clk(unsigned int f) {
     d = 2;
     s = 0;
   }
-  INFO("sd_clk divisor %x, shift %x", d, s);
+  //INFO("sd_clk divisor %x, shift %x", d, s);
   if (sd_hv > HOST_SPEC_V2)
     h = (d & 0x300) >> 2;
   d = (((d & 0x0ff) << 8) | h);
   put32(EMMC_CONTROL1, (get32(EMMC_CONTROL1) & 0xffff003f) | d);
-  wait_msec(10);
+  wait_msec_st(10);
   put32(EMMC_CONTROL1, get32(EMMC_CONTROL1) | C1_CLK_EN);
-  wait_msec(10);
+  wait_msec_st(10);
   cnt = 10000;
   while (!(get32(EMMC_CONTROL1) & C1_CLK_STABLE) && cnt--)
-    wait_msec(10);
+    wait_msec_st(10);
   if (cnt <= 0) {
     WARN("ERROR: failed to get stable clock");
     return SD_ERROR;
@@ -368,21 +368,21 @@ int sd_init() {
   put32(GPPUDCLK1, 0);
 
   sd_hv = (get32(EMMC_SLOTISR_VER) & HOST_SPEC_NUM) >> HOST_SPEC_NUM_SHIFT;
-  INFO("EMMC: GPIO set up");
+  //INFO("EMMC: GPIO set up");
   // Reset the card.
   put32(EMMC_CONTROL0, 0);
   put32(EMMC_CONTROL1, get32(EMMC_CONTROL1) | C1_SRST_HC);
   cnt = 10000;
   do {
-    wait_msec(10);
+    wait_msec_st(10);
   } while ((get32(EMMC_CONTROL1) & C1_SRST_HC) && cnt--);
   if (cnt <= 0) {
     WARN("ERROR: failed to reset EMMC");
     return SD_ERROR;
   }
-  INFO("EMMC: reset OK");
+  //INFO("EMMC: reset OK");
   put32(EMMC_CONTROL1, get32(EMMC_CONTROL1) | (C1_CLK_INTLEN | C1_TOUNIT_MAX));
-  wait_msec(10);
+  wait_msec_st(10);
   // Set clock to setup frequency.
   if ((r = sd_clk(400000)))
     return r;
@@ -408,7 +408,7 @@ int sd_init() {
       ret = "VOLTAGE";
     if (r & ACMD41_CMD_CCS)
       ret = "CCS";
-    INFO("EMMC: CMD_SEND_OP_COND returned %s %x %x", ret, r >> 32, r);
+    //INFO("EMMC: CMD_SEND_OP_COND returned %s %x %x", ret, r >> 32, r);
     if (sd_err != SD_TIMEOUT && sd_err != SD_OK) {
       WARN("ERROR: EMMC ACMD41 returned error");
       return sd_err;
@@ -424,7 +424,7 @@ int sd_init() {
   sd_cmd(CMD_ALL_SEND_CID, 0);
 
   sd_rca = sd_cmd(CMD_SEND_REL_ADDR, 0);
-  INFO("EMMC: CMD_SEND_REL_ADDR returned %x %x", sd_rca >> 32, sd_rca);
+  //INFO("EMMC: CMD_SEND_REL_ADDR returned %x %x", sd_rca >> 32, sd_rca);
   if (sd_err)
     return sd_err;
 
@@ -450,7 +450,7 @@ int sd_init() {
     if (get32(EMMC_STATUS) & SR_READ_AVAILABLE)
       sd_scr[r++] = get32(EMMC_DATA);
     else
-      wait_msec(1);
+      wait_msec_st(1);
   }
   if (r != 2)
     return SD_TIMEOUT;
@@ -466,7 +466,7 @@ int sd_init() {
     suppstr = "SET_BLKCNT ";
   if (ccs)
     suppstr = "CCS ";
-  INFO("EMMC: supports %s", suppstr);
+  //INFO("EMMC: supports %s", suppstr);
   sd_scr[0] &= ~SCR_SUPP_CCS;
   sd_scr[0] |= ccs;
   return SD_OK;

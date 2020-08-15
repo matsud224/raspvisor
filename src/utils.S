@@ -181,29 +181,17 @@ _get_sysregs:
   mrs x2, aidr_el1
   stp x1, x2, [x0], #16
   mrs x1, revidr_el1
-  str x1, [x0]
-  /*
-  mrs x2, cntfrq_el0
+  mrs x2, cntkctl_el1
   stp x1, x2, [x0], #16
-  mrs x1, cntkctl_el1
-  mrs x2, cntp_ctl_el0
+  mrs x1, cntp_ctl_el0
+  mrs x2, cntp_cval_el0
   stp x1, x2, [x0], #16
-  mrs x1, cntp_cval_el0
-  mrs x2, cntp_tval_el0
+  mrs x1, cntp_tval_el0
+  mrs x2, cntv_ctl_el0
   stp x1, x2, [x0], #16
-  mrs x1, cntpct_el0
-  mov x2, xzr
+  mrs x1, cntv_cval_el0
+  mrs x2, cntv_tval_el0
   stp x1, x2, [x0], #16
-  mov x1, xzr
-  mov x2, xzr
-  stp x1, x2, [x0], #16
-  mrs x1, cntv_ctl_el0
-  mrs x2, cntv_cval_el0
-  stp x1, x2, [x0], #16
-  mrs x1, cntv_tval_el0
-  mrs x2, cntvct_el0
-  stp x1, x2, [x0], #16
-  */
   ret
 
 .globl assert_vfiq

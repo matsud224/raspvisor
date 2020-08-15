@@ -7,10 +7,6 @@
 .globl el1_test_1
 el1_test_1:
   ldr x0, =(TIMER_CS)
-  mov w8, 777
-  str w8, [x0]
-  str w8, [x0]
-  str w8, [x0]
   hvc #0
 1:
   b 1b

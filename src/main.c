@@ -55,7 +55,7 @@ void hypervisor_main() {
   irq_vector_init();
   timer_init();
   enable_interrupt_controller();
-  //enable_irq();
+  enable_irq();
 
   if (sd_init() < 0)
     PANIC("sd_init() failed.");

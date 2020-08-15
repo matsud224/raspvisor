@@ -106,21 +106,13 @@ struct cpu_sysregs {
   unsigned long revidr_el1; // r
 
   // system timer
-  /*
-  unsigned long cntfrq_el0;
   unsigned long cntkctl_el1;
   unsigned long cntp_ctl_el0;
   unsigned long cntp_cval_el0;
   unsigned long cntp_tval_el0;
-  unsigned long cntpct_el0;
-  unsigned long cntps_ctl_el1;
-  unsigned long cntps_cval_el1;
-  unsigned long cntps_tval_el1;
   unsigned long cntv_ctl_el0;
   unsigned long cntv_cval_el0;
   unsigned long cntv_tval_el0;
-  unsigned long cntvct_el0;
-  */
 };
 
 

@@ -370,7 +370,24 @@ int bcm2837_is_irq_asserted(struct task_struct *tsk) {
 }
 
 int bcm2837_is_fiq_asserted(struct task_struct *tsk) {
-  return 0; // TODO
+  struct bcm2837_state *s = (struct bcm2837_state *)tsk->board_data;
+
+  if ((s->intctrl.fiq_control & 0x80) == 0)
+    return 0;
+
+  int source = s->intctrl.fiq_control & 0x7f;
+  if (source >= 0 && source <= 31) {
+    int pending = handle_intctrl_read(tsk, IRQ_PENDING_1);
+    return (pending & (1 << source)) != 0;
+  } else if (source >= 32 && source <= 63) {
+    int pending = handle_intctrl_read(tsk, IRQ_PENDING_2);
+    return (pending & (1 << (source - 32))) != 0;
+  } else if (source >= 64 && source <= 71) {
+    int pending = handle_intctrl_read(tsk, IRQ_BASIC_PENDING);
+    return (pending & (1 << (source - 64))) != 0;
+  }
+
+  return 0;
 }
 
 const struct board_ops bcm2837_board_ops = {

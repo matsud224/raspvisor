@@ -303,8 +303,6 @@ static int fat32_lookup_main(struct fat32_file *fatfile, const char *name, struc
       if (dent_name == NULL)
         dent_name = get_sfn(dent);
 
-
-      INFO("File: %s size=%d(%x)", dent_name, dent->DIR_FileSize, dent->DIR_FileSize);
       if (strncmp(name, dent_name, FAT32_MAX_FILENAME_LEN) == 0) {
         uint32_t dent_clus = (dent->DIR_FstClusHI << 16) | dent->DIR_FstClusLO;
         if (dent_clus == 0) {
@@ -313,7 +311,6 @@ static int fat32_lookup_main(struct fat32_file *fatfile, const char *name, struc
         }
 
         fat32_file_init(fat32, found, dent->DIR_Attr, dent->DIR_FileSize, dent_clus);
-        INFO("found!");
         goto file_found;
       }
     }

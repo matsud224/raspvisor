@@ -121,6 +121,10 @@ char *strcat(char *dest, const char *src) {
   return dest;
 }
 
+int isdigit(int c) {
+  return (c >= '0' && c <= '9');
+}
+
 int isspace(int c) {
   return (c == ' ' || c == '\f' || c == '\n' ||
           c == '\r' || c == '\t' || c == '\v');

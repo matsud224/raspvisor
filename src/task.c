@@ -6,6 +6,7 @@
 #include "debug.h"
 #include "bcm2837.h"
 #include "board.h"
+#include "fifo.h"
 
 struct pt_regs *task_pt_regs(struct task_struct *tsk) {
   unsigned long p = (unsigned long)tsk + THREAD_SIZE - sizeof(struct pt_regs);
@@ -80,9 +81,21 @@ int create_task(loader_func_t loader, void *arg) {
   task[pid] = p;
   p->pid = pid;
 
-  p->console.in_fifo = create_fifo();
-  p->console.out_fifo = create_fifo();
+  init_task_console(p);
 
   preempt_enable();
   return pid;
+}
+
+void init_task_console(struct task_struct *tsk) {
+  tsk->console.in_fifo = create_fifo();
+  tsk->console.out_fifo = create_fifo();
+}
+
+void flush_task_console(struct task_struct *tsk) {
+  struct fifo *outfifo = tsk->console.out_fifo;
+  unsigned long val;
+  while(dequeue_fifo(outfifo, &val) == 0) {
+    printf("%c", val & 0xff);
+  }
 }

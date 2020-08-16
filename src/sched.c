@@ -111,6 +111,8 @@ void vm_entering_work() {
 void vm_leaving_work() {
   if (HAVE_FUNC(current->board_ops, leaving_vm))
     current->board_ops->leaving_vm(current);
+
+  //flush_task_console(current);
 }
 
 const char *task_state_str[] = {
@@ -120,7 +122,7 @@ const char *task_state_str[] = {
 
 void show_task_list() {
   preempt_disable();
-  printf("pid state     pages   traps\n");
+  printf("%3s %8s %7s %7s\n", "id", "state", "pages", "traps");
   for (int i = 0; i < nr_tasks; i++) {
     struct task_struct *tsk = task[i];
     printf("%3d %8s %7d %7d\n", tsk->pid, task_state_str[tsk->state],

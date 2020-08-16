@@ -1,7 +1,10 @@
 #include "peripherals/mini_uart.h"
 #include "peripherals/gpio.h"
 #include "utils.h"
+#include "sched.h"
+#include "fifo.h"
 #include "printf.h"
+#include "task.h"
 
 static void _uart_send(char c) {
   while (1) {
@@ -33,8 +36,33 @@ char uart_recv(void) {
   return c;
 }
 
+#define ESCAPE_CHAR  '?'
+static int uart_forwarded_task = 0;
+
 void handle_uart_irq(void) {
-  printf("receive %c\n", get32(AUX_MU_IO_REG) & 0xff);
+  static char prev = '\0';
+
+  char received = get32(AUX_MU_IO_REG) & 0xff;
+
+  if (prev == ESCAPE_CHAR) {
+    if (isdigit(received)) {
+      uart_forwarded_task = received - '0';
+      printf("\nswitched to %d\n", uart_forwarded_task);
+      struct task_struct *tsk = task[uart_forwarded_task];
+      if (tsk->state == TASK_RUNNING)
+        flush_task_console(tsk);
+    } else if (received == 'l') {
+      show_task_list();
+    }
+  } else if (received != ESCAPE_CHAR) {
+    struct task_struct *tsk = task[uart_forwarded_task];
+    if (tsk->state == TASK_RUNNING) {
+      enqueue_fifo(tsk->console.in_fifo, received);
+    }
+  }
+  prev = received;
+  printf("received: %c\n", prev);
+
   put32(AUX_MU_IIR_REG, 0x2); // clear interrupt
 }
 

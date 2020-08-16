@@ -37,14 +37,15 @@ void show_invalid_entry_message(int type, unsigned long esr,
 
 void handle_irq(void) {
   unsigned int irq = get32(IRQ_PENDING_1);
-  switch (irq) {
-  case (SYSTEM_TIMER_IRQ_1_BIT):
+  if (irq & SYSTEM_TIMER_IRQ_1_BIT) {
+    irq &= ~SYSTEM_TIMER_IRQ_1_BIT;
     handle_timer_irq();
-    break;
-  case (AUX_IRQ_BIT):
-    handle_uart_irq();
-    break;
-  default:
-    WARN("unknown pending irq: %x", irq);
   }
+  if (irq & AUX_IRQ_BIT) {
+    irq &= ~AUX_IRQ_BIT;
+    handle_uart_irq();
+  }
+
+  if (irq)
+    WARN("unknown pending irq: %x", irq);
 }

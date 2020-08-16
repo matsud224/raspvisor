@@ -38,6 +38,7 @@ char *strchr(const char *s, int c);
 char *strcpy(char *dest, const char *src);
 char *strncat(char *dest, const char *src, size_t n);
 char *strcat(char *dest, const char *src);
+int isdigit(int c);
 int isspace(int c);
 int toupper(int c);
 int tolower(int c);

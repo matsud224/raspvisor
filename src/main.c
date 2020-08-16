@@ -18,6 +18,7 @@ void hypervisor_main() {
   init_printf(NULL, putc);
   printf("=== raspvisor ===\n");
 
+  init_task_console(current);
   irq_vector_init();
   timer_init();
   enable_interrupt_controller();
@@ -45,7 +46,6 @@ void hypervisor_main() {
   */
 
   while (1) {
-    //run_shell();
     schedule();
   }
 }

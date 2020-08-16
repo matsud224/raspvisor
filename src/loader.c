@@ -16,7 +16,7 @@ int load_file_to_memory(struct task_struct *tsk, const char *name, unsigned long
 
   struct fat32_file file;
   if (fat32_lookup(&hfat, name, &file) < 0) {
-    WARN("requested file is not found.");
+    WARN("requested file \"%s\" is not found.", name);
     return -1;
   }
 

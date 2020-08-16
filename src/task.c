@@ -12,7 +12,7 @@ struct pt_regs *task_pt_regs(struct task_struct *tsk) {
   return (struct pt_regs *)p;
 }
 
-static void prepare_task(loader_func_t loader, unsigned long arg) {
+static void prepare_task(loader_func_t loader, void *arg) {
   INFO("loading...");
 
   struct pt_regs *regs = task_pt_regs(current);
@@ -46,7 +46,7 @@ void increment_current_pc(int ilen) {
   regs->pc += ilen;
 }
 
-int create_task(loader_func_t loader, unsigned long arg) {
+int create_task(loader_func_t loader, void *arg) {
   preempt_disable();
   struct task_struct *p;
 
@@ -59,7 +59,7 @@ int create_task(loader_func_t loader, unsigned long arg) {
 
   p->cpu_context.x19 = (unsigned long)prepare_task;
   p->cpu_context.x20 = (unsigned long)loader;
-  p->cpu_context.x21 = arg;
+  p->cpu_context.x21 = (unsigned long)arg;
   p->flags = 0;
   p->priority = current->priority;
   p->state = TASK_RUNNING;

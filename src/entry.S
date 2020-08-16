@@ -40,11 +40,12 @@
 
   stp x30, x21, [sp, #16 * 15]
   stp x22, x23, [sp, #16 * 16]
+
+  bl vm_leaving_work
   .endm
 
   .macro  kernel_exit
-  ldr x0, current
-  bl set_cpu_virtual_interrupt
+  bl vm_entering_work
 
   ldp x22, x23, [sp, #16 * 16]
   ldp x30, x21, [sp, #16 * 15]

@@ -4,6 +4,8 @@
 #include "bcm2837.h"
 #include "mm.h"
 #include "fifo.h"
+#include "timer.h"
+#include "utils.h"
 #include "peripherals/mini_uart.h"
 #include "peripherals/timer.h"
 #include "peripherals/irq.h"
@@ -33,12 +35,17 @@ struct bcm2837_state {
   } aux;
 
   struct {
+    uint64_t last_physical_count;
+    uint64_t offset;
     uint32_t cs;
-    uint64_t counter;
     uint32_t c0;
     uint32_t c1;
     uint32_t c2;
     uint32_t c3;
+    uint64_t c0_long;
+    uint64_t c1_long;
+    uint64_t c2_long;
+    uint64_t c3_long;
   } systimer;
 };
 
@@ -63,7 +70,6 @@ const struct bcm2837_state initial_state = {
   },
   .systimer = {
     .cs  = 0x0,
-    .counter = 0x0,
     .c0  = 0x0,
     .c1  = 0x0,
     .c2  = 0x0,
@@ -82,6 +88,8 @@ void bcm2837_initialize(struct task_struct *tsk) {
 
   s->aux.mu_tx_fifo = create_fifo();
   s->aux.mu_rx_fifo = create_fifo();
+
+  s->systimer.last_physical_count = get_physical_timer_count();
 
   tsk->board_data = s;
 
@@ -140,18 +148,25 @@ void handle_intctrl_write(struct task_struct *tsk, unsigned long addr, unsigned 
   switch (addr) {
   case FIQ_CONTROL:
     s->intctrl.fiq_control = val;
+    break;
   case ENABLE_IRQS_1:
     s->intctrl.irqs_1_enabled |= val;
+    break;
   case ENABLE_IRQS_2:
     s->intctrl.irqs_2_enabled |= val;
+    break;
   case ENABLE_BASIC_IRQS:
     s->intctrl.basic_irqs_enabled |= val;
+    break;
   case DISABLE_IRQS_1:
     s->intctrl.irqs_1_enabled &= ~val;
+    break;
   case DISABLE_IRQS_2:
     s->intctrl.irqs_2_enabled &= ~val;
+    break;
   case DISABLE_BASIC_IRQS:
     s->intctrl.basic_irqs_enabled &= ~val;
+    break;
   }
 }
 
@@ -292,15 +307,18 @@ void handle_aux_write(struct task_struct *tsk, unsigned long addr, unsigned long
   }
 }
 
+#define TO_VIRTUAL_COUNT(s, p) (p - (s)->systimer.offset)
+#define TO_PHYSICAL_COUNT(s, v) (v + (s)->systimer.offset)
+
 unsigned long handle_systimer_read(struct task_struct *tsk, unsigned long addr) {
   struct bcm2837_state *s = (struct bcm2837_state *)tsk->board_data;
   switch (addr) {
   case TIMER_CS:
     return s->systimer.cs;
   case TIMER_CLO:
-    return s->systimer.counter & 0xffffffff;
+    return TO_VIRTUAL_COUNT(s, get_physical_timer_count()) & 0xffffffff;
   case TIMER_CHI:
-    return s->systimer.counter >> 32;
+    return TO_VIRTUAL_COUNT(s, get_physical_timer_count()) >> 32;
   case TIMER_C0:
     return s->systimer.c0;
   case TIMER_C1:
@@ -313,19 +331,42 @@ unsigned long handle_systimer_read(struct task_struct *tsk, unsigned long addr) 
   return 0;
 }
 
+void update_timer_cmpval(unsigned long new_cmpval) {
+  unsigned long current_cmpval = get32(TIMER_C1) | ((unsigned long)get32(TIMER_CHI) << 32);
+
+  if (current_cmpval > new_cmpval &&
+      get_physical_timer_count() < new_cmpval)
+    put32(TIMER_C1, new_cmpval & 0xffffffff);
+}
+
 void handle_systimer_write(struct task_struct *tsk, unsigned long addr, unsigned long val) {
   struct bcm2837_state *s = (struct bcm2837_state *)tsk->board_data;
+
+#define TO_LONG_COMPARE_VALUE(val) \
+  val > handle_systimer_read(tsk, TIMER_CLO) ? \
+    (handle_systimer_read(tsk, TIMER_CHI) << 32) | val : \
+    ((handle_systimer_read(tsk, TIMER_CHI) + 1) << 32) | val
+
   switch (addr) {
   case TIMER_CS:
     s->systimer.cs &= ~val;
+    break;
   case TIMER_C0:
     s->systimer.c0 = val;
+    s->systimer.c0_long = TO_LONG_COMPARE_VALUE(val);
+    break;
   case TIMER_C1:
     s->systimer.c1 = val;
+    s->systimer.c1_long = TO_LONG_COMPARE_VALUE(val);
+    break;
   case TIMER_C2:
     s->systimer.c2 = val;
+    s->systimer.c2_long = TO_LONG_COMPARE_VALUE(val);
+    break;
   case TIMER_C3:
     s->systimer.c3 = val;
+    s->systimer.c3_long = TO_LONG_COMPARE_VALUE(val);
+    break;
   }
 }
 
@@ -350,19 +391,34 @@ void bcm2837_mmio_write(struct task_struct *tsk, unsigned long addr, unsigned lo
   }
 }
 
-void bcm2837_timer_tick(struct task_struct *tsk) {
+void bcm2837_entering_vm(struct task_struct *tsk) {
   struct bcm2837_state *s = (struct bcm2837_state *)tsk->board_data;
 
-  s->systimer.counter++;
+  // update systimer's offset
+  unsigned long current_physical_count = get_physical_timer_count();
+  s->systimer.offset +=
+    current_physical_count - s->systimer.last_physical_count;
 
-  uint32_t clo = s->systimer.counter & 0xffff;
-  int matched = (clo == s->systimer.c0) |
-    ((clo == s->systimer.c1) << 1) |
-    ((clo == s->systimer.c2) << 2) |
-    ((clo == s->systimer.c3) << 3);
+  // update cs register
+  unsigned long current_virt_count = TO_VIRTUAL_COUNT(s, current_physical_count);
+  int matched = (current_virt_count >= s->systimer.c0_long) |
+    ((current_virt_count >= s->systimer.c1_long) << 1) |
+    ((current_virt_count >= s->systimer.c2_long) << 2) |
+    ((current_virt_count >= s->systimer.c3_long) << 3);
+
+  // update (physical) timer compare value for upcoming timer match
+  update_timer_cmpval(TO_PHYSICAL_COUNT(s, s->systimer.c0_long));
+  update_timer_cmpval(TO_PHYSICAL_COUNT(s, s->systimer.c1_long));
+  update_timer_cmpval(TO_PHYSICAL_COUNT(s, s->systimer.c2_long));
+  update_timer_cmpval(TO_PHYSICAL_COUNT(s, s->systimer.c3_long));
 
   int fired = (~s->systimer.cs) & matched;
   s->systimer.cs |= fired;
+}
+
+void bcm2837_leaving_vm(struct task_struct *tsk) {
+  struct bcm2837_state *s = (struct bcm2837_state *)tsk->board_data;
+  s->systimer.last_physical_count = get_physical_timer_count();
 }
 
 int bcm2837_is_irq_asserted(struct task_struct *tsk) {
@@ -394,7 +450,8 @@ const struct board_ops bcm2837_board_ops = {
   .initialize = bcm2837_initialize,
   .mmio_read  = bcm2837_mmio_read,
   .mmio_write = bcm2837_mmio_write,
-  .timer_tick = bcm2837_timer_tick,
+  .entering_vm = bcm2837_entering_vm,
+  .leaving_vm = bcm2837_leaving_vm,
   .is_irq_asserted = bcm2837_is_irq_asserted,
   .is_fiq_asserted = bcm2837_is_fiq_asserted,
 };

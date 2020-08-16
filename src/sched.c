@@ -101,3 +101,14 @@ void exit_task() {
   preempt_enable();
   schedule();
 }
+
+void vm_entering_work() {
+  set_cpu_virtual_interrupt(current);
+  if (HAVE_FUNC(current->board_ops, entering_vm))
+    current->board_ops->entering_vm(current);
+}
+
+void vm_leaving_work() {
+  if (HAVE_FUNC(current->board_ops, leaving_vm))
+    current->board_ops->leaving_vm(current);
+}

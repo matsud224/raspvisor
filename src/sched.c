@@ -112,3 +112,19 @@ void vm_leaving_work() {
   if (HAVE_FUNC(current->board_ops, leaving_vm))
     current->board_ops->leaving_vm(current);
 }
+
+const char *task_state_str[] = {
+  "RUNNING",
+  "ZOMBIE",
+};
+
+void show_task_list() {
+  preempt_disable();
+  printf("pid state     pages   traps\n");
+  for (int i = 0; i < nr_tasks; i++) {
+    struct task_struct *tsk = task[i];
+    printf("%3d %8s %7d %7d\n", tsk->pid, task_state_str[tsk->state],
+        tsk->mm.user_pages_count, tsk->stat.trap_count);
+  }
+  preempt_enable();
+}

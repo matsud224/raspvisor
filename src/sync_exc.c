@@ -164,6 +164,8 @@ void handle_sync_exception(unsigned long esr, unsigned long elr,
     unsigned long far, unsigned long hvc_nr) {
   int eclass = (esr >> ESR_EL2_EC_SHIFT) & 0x3f;
 
+  current->stat.trap_count++;
+
   switch (eclass) {
   case ESR_EL2_EC_TRAP_WFX:
     handle_trap_wfx();

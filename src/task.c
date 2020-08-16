@@ -80,6 +80,9 @@ int create_task(loader_func_t loader, void *arg) {
   task[pid] = p;
   p->pid = pid;
 
+  p->console.in_fifo = create_fifo();
+  p->console.out_fifo = create_fifo();
+
   preempt_enable();
   return pid;
 }

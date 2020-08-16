@@ -45,6 +45,7 @@ void hypervisor_main() {
   */
 
   while (1) {
+    run_shell();
     schedule();
   }
 }

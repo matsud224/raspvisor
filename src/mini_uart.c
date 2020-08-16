@@ -1,6 +1,7 @@
 #include "peripherals/mini_uart.h"
 #include "peripherals/gpio.h"
 #include "utils.h"
+#include "printf.h"
 
 static void _uart_send(char c) {
   while (1) {
@@ -24,7 +25,12 @@ char uart_recv(void) {
     if (get32(AUX_MU_LSR_REG) & 0x01)
       break;
   }
-  return (get32(AUX_MU_IO_REG) & 0xFF);
+
+  char c = get32(AUX_MU_IO_REG) & 0xFF;
+  if (c == '\r')
+    c = '\n';
+
+  return c;
 }
 
 void uart_send_string(char *str) {

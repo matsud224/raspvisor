@@ -122,6 +122,15 @@ struct mm_struct {
   int kernel_pages_count;
 };
 
+struct task_stat {
+  long trap_count;
+};
+
+struct task_console {
+  struct fifo *in_fifo;
+  struct fifo *out_fifo;
+};
+
 struct task_struct {
   struct cpu_context cpu_context;
   long state;
@@ -134,6 +143,8 @@ struct task_struct {
   void *board_data;
   struct mm_struct mm;
   struct cpu_sysregs cpu_sysregs;
+  struct task_stat stat;
+  struct task_console console;
 };
 
 extern void sched_init(void);
@@ -146,6 +157,7 @@ extern void set_cpu_virtual_interrupt(struct task_struct *);
 extern void switch_to(struct task_struct *);
 extern void cpu_switch_to(struct task_struct *, struct task_struct *);
 extern void exit_task(void);
+extern void show_task_list(void);
 
 #define INIT_TASK  \
   {  \
@@ -153,5 +165,7 @@ extern void exit_task(void);
     /* state etc */    0, 0, 15, 0, 0, 0, 0, 0,  \
     /* mm */          {0},  \
     /* cpu_sysregs */ {0},  \
+    /* stat */        {0},  \
+    /* console */     {0},  \
   }
 #endif

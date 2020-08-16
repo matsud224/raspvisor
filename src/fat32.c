@@ -64,12 +64,6 @@ struct fat32_lfnent {
 #define RESERVED_CLUSTER 1
 #define BAD_CLUSTER 0x0FFFFFF7
 
-int strncmp(const char *s1, const char *s2, size_t n) {
-  size_t i;
-  for(i=0; i<n && *s1 && (*s1==*s2); i++, s1++, s2++);
-  return (i!=n)?(*s1 - *s2):0;
-}
-
 static uint8_t *alloc_and_readblock(unsigned int lba) {
   uint8_t *buf = (uint8_t *)allocate_page();
   if (sd_readblock(lba, buf, 1) < 0)

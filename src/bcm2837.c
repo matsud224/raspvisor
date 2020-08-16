@@ -20,8 +20,6 @@ struct bcm2837_state {
   } intctrl;
 
   struct {
-    struct fifo *mu_tx_fifo;
-    struct fifo *mu_rx_fifo;
     int      mu_rx_overrun;
     uint8_t  aux_enables;
     uint8_t  aux_mu_io;
@@ -85,9 +83,6 @@ const struct bcm2837_state initial_state = {
 void bcm2837_initialize(struct task_struct *tsk) {
   struct bcm2837_state *s = (struct bcm2837_state *)allocate_page();
   *s = initial_state;
-
-  s->aux.mu_tx_fifo = create_fifo();
-  s->aux.mu_rx_fifo = create_fifo();
 
   s->systimer.last_physical_count = get_physical_timer_count();
 
@@ -194,7 +189,7 @@ unsigned long handle_aux_read(struct task_struct *tsk, unsigned long addr) {
       return s->aux.aux_mu_baud & 0xff;
     } else {
       unsigned long data;
-      dequeue_fifo(s->aux.mu_rx_fifo, &data);
+      dequeue_fifo(tsk->console.in_fifo, &data);
       return data;
     }
   case AUX_MU_IER_REG:
@@ -205,8 +200,8 @@ unsigned long handle_aux_read(struct task_struct *tsk, unsigned long addr) {
     }
   case AUX_MU_IIR_REG:
     {
-      int tx_int = (s->aux.aux_mu_ier & 0x2) && is_empty_fifo(s->aux.mu_tx_fifo);
-      int rx_int = (s->aux.aux_mu_ier & 0x1) && !is_empty_fifo(s->aux.mu_rx_fifo);
+      int tx_int = (s->aux.aux_mu_ier & 0x2) && is_empty_fifo(tsk->console.out_fifo);
+      int rx_int = (s->aux.aux_mu_ier & 0x1) && !is_empty_fifo(tsk->console.in_fifo);
       int int_id = tx_int | (rx_int << 1);
       if (int_id == 0x3)
         int_id = 0x1;
@@ -218,10 +213,10 @@ unsigned long handle_aux_read(struct task_struct *tsk, unsigned long addr) {
     return s->aux.aux_mu_mcr;
   case AUX_MU_LSR_REG:
     {
-      int dready = !is_empty_fifo(s->aux.mu_rx_fifo);
+      int dready = !is_empty_fifo(tsk->console.in_fifo);
       int rx_overrun = s->aux.mu_rx_overrun;
-      int tx_empty = !is_full_fifo(s->aux.mu_tx_fifo);
-      int tx_idle = is_empty_fifo(s->aux.mu_tx_fifo);
+      int tx_empty = !is_full_fifo(tsk->console.out_fifo);
+      int tx_idle = is_empty_fifo(tsk->console.out_fifo);
       s->aux.mu_rx_overrun = 0;
       return dready | (rx_overrun << 1) | (tx_empty << 5) | (tx_idle << 6);
     }
@@ -234,16 +229,16 @@ unsigned long handle_aux_read(struct task_struct *tsk, unsigned long addr) {
   case AUX_MU_STAT_REG:
     {
 #define MIN(a,b) ((a)<(b)?(a):(b))
-      int sym_avail = !is_empty_fifo(s->aux.mu_rx_fifo);
-      int space_avail = !is_full_fifo(s->aux.mu_tx_fifo);
-      int rx_idle = is_empty_fifo(s->aux.mu_rx_fifo);
-      int tx_idle = !is_empty_fifo(s->aux.mu_tx_fifo);
+      int sym_avail = !is_empty_fifo(tsk->console.in_fifo);
+      int space_avail = !is_full_fifo(tsk->console.out_fifo);
+      int rx_idle = is_empty_fifo(tsk->console.in_fifo);
+      int tx_idle = !is_empty_fifo(tsk->console.out_fifo);
       int rx_overrun = s->aux.mu_rx_overrun;
       int tx_full = !space_avail;
-      int tx_empty = is_empty_fifo(s->aux.mu_tx_fifo);
+      int tx_empty = is_empty_fifo(tsk->console.out_fifo);
       int tx_done = rx_idle & tx_empty;
-      int rx_fifo_level = MIN(used_of_fifo(s->aux.mu_rx_fifo), 8);
-      int tx_fifo_level = MIN(used_of_fifo(s->aux.mu_tx_fifo), 8);
+      int rx_fifo_level = MIN(used_of_fifo(tsk->console.in_fifo), 8);
+      int tx_fifo_level = MIN(used_of_fifo(tsk->console.out_fifo), 8);
       return sym_avail | (space_avail << 1) | (rx_idle << 2) |
         (tx_idle << 3) | (rx_overrun << 4) | (tx_full << 5) |
         (tx_empty << 8) | (tx_done << 9) | (rx_fifo_level << 16) |
@@ -272,7 +267,8 @@ void handle_aux_write(struct task_struct *tsk, unsigned long addr, unsigned long
       s->aux.aux_mu_baud =
         (s->aux.aux_mu_baud & 0xff00) | (val & 0xff);
     } else {
-      enqueue_fifo(s->aux.mu_tx_fifo, val & 0xff);
+      INFO("uart: %c", val & 0xff);
+      enqueue_fifo(tsk->console.out_fifo, val & 0xff);
     }
     break;
   case AUX_MU_IER_REG:
@@ -285,9 +281,9 @@ void handle_aux_write(struct task_struct *tsk, unsigned long addr, unsigned long
     break;
   case AUX_MU_IIR_REG:
     if (val & 0x2)
-      clear_fifo(s->aux.mu_rx_fifo);
+      clear_fifo(tsk->console.in_fifo);
     if (val & 0x4)
-      clear_fifo(s->aux.mu_tx_fifo);
+      clear_fifo(tsk->console.out_fifo);
     break;
   case AUX_MU_LCR_REG:
     s->aux.aux_mu_lcr = val;

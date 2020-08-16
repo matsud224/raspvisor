@@ -33,10 +33,9 @@ char uart_recv(void) {
   return c;
 }
 
-void uart_send_string(char *str) {
-  for (int i = 0; str[i] != '\0'; i++) {
-    uart_send((char)str[i]);
-  }
+void handle_uart_irq(void) {
+  printf("receive %c\n", get32(AUX_MU_IO_REG) & 0xff);
+  put32(AUX_MU_IIR_REG, 0x2); // clear interrupt
 }
 
 void uart_init(void) {
@@ -55,11 +54,10 @@ void uart_init(void) {
   delay(150);
   put32(GPPUDCLK0, 0);
 
-  put32(AUX_ENABLES,
-        1); // Enable mini uart (this also enables access to it registers)
+  put32(AUX_ENABLES, 1); // Enable mini uart (this also enables access to it registers)
   put32(AUX_MU_CNTL_REG, 0); // Disable auto flow control and disable receiver
                              // and transmitter (for now)
-  put32(AUX_MU_IER_REG, 0);    // Disable receive and transmit interrupts
+  put32(AUX_MU_IER_REG, 1);    // Enable receive interrupt
   put32(AUX_MU_LCR_REG, 3);    // Enable 8 bit mode
   put32(AUX_MU_MCR_REG, 0);    // Set RTS line to be always high
   put32(AUX_MU_BAUD_REG, 270); // Set baud rate to 115200

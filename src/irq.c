@@ -5,6 +5,7 @@
 #include "utils.h"
 #include "sched.h"
 #include "debug.h"
+#include "mini_uart.h"
 
 const char *entry_error_messages[] = {
   "SYNC_INVALID_EL2",
@@ -24,7 +25,8 @@ const char *entry_error_messages[] = {
 };
 
 void enable_interrupt_controller() {
-  put32(ENABLE_IRQS_1, SYSTEM_TIMER_IRQ_1);
+  put32(ENABLE_IRQS_1, SYSTEM_TIMER_IRQ_1_BIT);
+  put32(ENABLE_IRQS_1, AUX_IRQ_BIT);
 }
 
 void show_invalid_entry_message(int type, unsigned long esr,
@@ -36,8 +38,11 @@ void show_invalid_entry_message(int type, unsigned long esr,
 void handle_irq(void) {
   unsigned int irq = get32(IRQ_PENDING_1);
   switch (irq) {
-  case (SYSTEM_TIMER_IRQ_1):
+  case (SYSTEM_TIMER_IRQ_1_BIT):
     handle_timer_irq();
+    break;
+  case (AUX_IRQ_BIT):
+    handle_uart_irq();
     break;
   default:
     WARN("unknown pending irq: %x", irq);

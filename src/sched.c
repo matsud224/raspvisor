@@ -4,6 +4,7 @@
 #include "utils.h"
 #include "debug.h"
 #include "board.h"
+#include "task.h"
 
 static struct task_struct init_task = INIT_TASK;
 struct task_struct *current = &(init_task);
@@ -106,13 +107,17 @@ void vm_entering_work() {
   set_cpu_virtual_interrupt(current);
   if (HAVE_FUNC(current->board_ops, entering_vm))
     current->board_ops->entering_vm(current);
+
+  if (is_uart_forwarded_task(current))
+    flush_task_console(current);
 }
 
 void vm_leaving_work() {
   if (HAVE_FUNC(current->board_ops, leaving_vm))
     current->board_ops->leaving_vm(current);
 
-  //flush_task_console(current);
+  if (is_uart_forwarded_task(current))
+    flush_task_console(current);
 }
 
 const char *task_state_str[] = {

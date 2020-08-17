@@ -3,7 +3,7 @@
 #include "utils.h"
 #include "debug.h"
 
-const unsigned int interval = 20000;
+const unsigned int interval = 30000;
 unsigned int curVal = 0;
 
 void timer_init(void) {

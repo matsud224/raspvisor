@@ -174,6 +174,8 @@ unsigned long handle_aux_read(struct task_struct *tsk, unsigned long addr) {
     return 0;
   }
 
+  //INFO("AUX_read : %x", addr);
+
   switch (addr) {
   case AUX_IRQ:
     {
@@ -257,6 +259,8 @@ void handle_aux_write(struct task_struct *tsk, unsigned long addr, unsigned long
     return;
   }
 
+  //INFO("AUX_write : %x %x", addr, val);
+
   switch (addr) {
   case AUX_ENABLES:
     s->aux.aux_enables = val;
@@ -267,7 +271,7 @@ void handle_aux_write(struct task_struct *tsk, unsigned long addr, unsigned long
       s->aux.aux_mu_baud =
         (s->aux.aux_mu_baud & 0xff00) | (val & 0xff);
     } else {
-      INFO("uart: %c", val & 0xff);
+      //INFO("uart: %c", val & 0xff);
       enqueue_fifo(tsk->console.out_fifo, val & 0xff);
     }
     break;

@@ -50,6 +50,11 @@ set_stage2_pgd:
   isb
   ret
 
+.globl set_sp_el2
+set_sp_el2:
+  msr sp_el2, x0
+  ret
+
 .globl _set_sysregs
 _set_sysregs:
   ldp x1, x2, [x0], #16

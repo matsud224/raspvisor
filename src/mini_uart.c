@@ -37,7 +37,7 @@ char uart_recv(void) {
 }
 
 #define ESCAPE_CHAR  '?'
-static int uart_forwarded_task = 0;
+static int uart_forwarded_task = 1;
 
 int is_uart_forwarded_task(struct task_struct *tsk) {
   return tsk->pid == uart_forwarded_task;

@@ -30,9 +30,9 @@ void enable_interrupt_controller() {
 }
 
 void show_invalid_entry_message(int type, unsigned long esr,
-                                unsigned long address) {
-  PANIC("uncaught exception(%s) ESR: %x, address: %x", entry_error_messages[type],
-         esr, address);
+                                unsigned long elr, unsigned long far) {
+  PANIC("uncaught exception(%s) esr: %x, elr: %x, far: %x", entry_error_messages[type],
+         esr, elr, far);
 }
 
 void handle_irq(void) {

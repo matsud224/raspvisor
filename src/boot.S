@@ -58,6 +58,9 @@ el2_entry:
   ldr x0, =(MAIR_VALUE)
   msr mair_el2, x0
 
+  // clear TLB
+  tlbi alle1
+
   ldr x2, =hypervisor_main
 
   mov x0, #SCTLR_MMU_ENABLED

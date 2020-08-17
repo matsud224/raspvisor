@@ -202,21 +202,21 @@ _get_sysregs:
 .globl assert_vfiq
 assert_vfiq:
   mrs x0, hcr_el2
-  and x1, x0, #0x40
+  orr x1, x0, #0x40
   msr hcr_el2, x1
   ret
 
 .globl assert_virq
 assert_virq:
   mrs x0, hcr_el2
-  and x1, x0, #0x80
+  orr x1, x0, #0x80
   msr hcr_el2, x1
   ret
 
 .globl assert_vserror
 assert_vserror:
   mrs x0, hcr_el2
-  and x1, x0, #0x100
+  orr x1, x0, #0x100
   msr hcr_el2, x1
   ret
 

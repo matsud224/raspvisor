@@ -329,30 +329,25 @@ unsigned long handle_systimer_read(struct task_struct *tsk, unsigned long addr) 
 void handle_systimer_write(struct task_struct *tsk, unsigned long addr, unsigned long val) {
   struct bcm2837_state *s = (struct bcm2837_state *)tsk->board_data;
 
-#define TO_LONG_COMPARE_VALUE(val) \
-  val > handle_systimer_read(tsk, TIMER_CLO) ? \
-    (handle_systimer_read(tsk, TIMER_CHI) << 32) | val : \
-    ((handle_systimer_read(tsk, TIMER_CHI) + 1) << 32) | val
-
   switch (addr) {
   case TIMER_CS:
     s->systimer.cs &= ~val;
     break;
   case TIMER_C0:
     s->systimer.c0 = val;
-    s->systimer.c0_expire = val - handle_systimer_read(tsk, TIMER_CLO);
+    s->systimer.c0_expire = val > handle_systimer_read(tsk, TIMER_CLO) ? val - handle_systimer_read(tsk, TIMER_CLO) : 1;
     break;
   case TIMER_C1:
     s->systimer.c1 = val;
-    s->systimer.c1_expire = val - handle_systimer_read(tsk, TIMER_CLO);
+    s->systimer.c1_expire = val > handle_systimer_read(tsk, TIMER_CLO) ? val - handle_systimer_read(tsk, TIMER_CLO) : 1;
     break;
   case TIMER_C2:
     s->systimer.c2 = val;
-    s->systimer.c2_expire = val - handle_systimer_read(tsk, TIMER_CLO);
+    s->systimer.c2_expire = val > handle_systimer_read(tsk, TIMER_CLO) ? val - handle_systimer_read(tsk, TIMER_CLO) : 1;
     break;
   case TIMER_C3:
     s->systimer.c3 = val;
-    s->systimer.c3_expire = val - handle_systimer_read(tsk, TIMER_CLO);
+    s->systimer.c3_expire = val > handle_systimer_read(tsk, TIMER_CLO) ? val - handle_systimer_read(tsk, TIMER_CLO) : 1;
     break;
   }
 }

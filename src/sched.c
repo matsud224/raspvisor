@@ -53,13 +53,13 @@ void schedule(void) {
 
 void set_cpu_virtual_interrupt(struct task_struct *tsk) {
   if (HAVE_FUNC(tsk->board_ops, is_irq_asserted) &&
-    tsk->board_ops->is_irq_asserted(current))
+    tsk->board_ops->is_irq_asserted(tsk))
     assert_virq();
   else
     clear_virq();
 
   if (HAVE_FUNC(tsk->board_ops, is_fiq_asserted) &&
-    tsk->board_ops->is_fiq_asserted(current))
+    tsk->board_ops->is_fiq_asserted(tsk))
     assert_vfiq();
   else
     clear_vfiq();
@@ -104,14 +104,14 @@ void set_cpu_sysregs(struct task_struct *tsk) {
 }
 
 void vm_entering_work() {
-  set_cpu_sysregs(current);
-  set_cpu_virtual_interrupt(current);
-
   if (HAVE_FUNC(current->board_ops, entering_vm))
     current->board_ops->entering_vm(current);
 
   if (is_uart_forwarded_task(current))
     flush_task_console(current);
+
+  set_cpu_sysregs(current);
+  set_cpu_virtual_interrupt(current);
 }
 
 void vm_leaving_work() {

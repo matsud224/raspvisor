@@ -113,13 +113,14 @@ unsigned long handle_intctrl_read(struct task_struct *tsk, unsigned long addr) {
         BIT(s->intctrl.irqs_1_enabled, 1) && (s->systimer.cs & 0x2);
       unsigned long systimer_match3 =
         BIT(s->intctrl.irqs_1_enabled, 3) && (s->systimer.cs & 0x8);
-      unsigned long int uart_int =
-        BIT(s->intctrl.irqs_1_enabled, (57-32)) && (handle_aux_read(tsk, AUX_IRQ) & 0x1);
-      return (systimer_match1 << 1) | (systimer_match3 << 3) |
-        (uart_int << 57);
+      return (systimer_match1 << 1) | (systimer_match3 << 3);
     }
   case IRQ_PENDING_2:
-    return 0;
+    {
+      unsigned long uart_int =
+        BIT(s->intctrl.irqs_1_enabled, (57-32)) && (handle_aux_read(tsk, AUX_IRQ) & 0x1);
+      return (uart_int << (57-32));
+    }
   case FIQ_CONTROL:
     return s->intctrl.fiq_control;
   case ENABLE_IRQS_1:
@@ -328,6 +329,7 @@ unsigned long handle_systimer_read(struct task_struct *tsk, unsigned long addr) 
 
 void handle_systimer_write(struct task_struct *tsk, unsigned long addr, unsigned long val) {
   struct bcm2837_state *s = (struct bcm2837_state *)tsk->board_data;
+  uint32_t current_clo = handle_systimer_read(tsk, TIMER_CLO);
 
   switch (addr) {
   case TIMER_CS:
@@ -335,19 +337,21 @@ void handle_systimer_write(struct task_struct *tsk, unsigned long addr, unsigned
     break;
   case TIMER_C0:
     s->systimer.c0 = val;
-    s->systimer.c0_expire = val > handle_systimer_read(tsk, TIMER_CLO) ? val - handle_systimer_read(tsk, TIMER_CLO) : 1;
+    s->systimer.c0_expire = val > current_clo ? val - current_clo : 10000;
     break;
   case TIMER_C1:
     s->systimer.c1 = val;
-    s->systimer.c1_expire = val > handle_systimer_read(tsk, TIMER_CLO) ? val - handle_systimer_read(tsk, TIMER_CLO) : 1;
+    s->systimer.c1_expire = val > current_clo ? val - current_clo : 10000;
+    if (s->systimer.c1_expire == 0)
+      PANIC("ASSERTION FAILED");
     break;
   case TIMER_C2:
     s->systimer.c2 = val;
-    s->systimer.c2_expire = val > handle_systimer_read(tsk, TIMER_CLO) ? val - handle_systimer_read(tsk, TIMER_CLO) : 1;
+    s->systimer.c2_expire = val > current_clo ? val - current_clo : 10000;
     break;
   case TIMER_C3:
     s->systimer.c3 = val;
-    s->systimer.c3_expire = val > handle_systimer_read(tsk, TIMER_CLO) ? val - handle_systimer_read(tsk, TIMER_CLO) : 1;
+    s->systimer.c3_expire = val > current_clo ? val - current_clo : 10000;
     break;
   }
 }
@@ -391,22 +395,29 @@ void bcm2837_entering_vm(struct task_struct *tsk) {
 
   // update systimer's offset
   unsigned long current_physical_count = get_physical_timer_count();
-  s->systimer.offset +=
-    current_physical_count - s->systimer.last_physical_count;
+  uint64_t lapse = current_physical_count - s->systimer.last_physical_count;
+  s->systimer.offset += lapse;
 
   // update cs register
-  uint64_t lapse = current_physical_count - s->systimer.last_physical_count;
-  int matched = (check_expiration(&s->systimer.c0_expire, lapse)) |
+  int matched =
+    (check_expiration(&s->systimer.c0_expire, lapse)) |
     (check_expiration(&s->systimer.c1_expire, lapse) << 1) |
     (check_expiration(&s->systimer.c2_expire, lapse) << 2) |
     (check_expiration(&s->systimer.c3_expire, lapse) << 3);
 
   // update (physical) timer compare value for upcoming timer match
-  uint32_t upcoming = s->systimer.c0_expire;
-  upcoming = MIN(upcoming, s->systimer.c1_expire);
-  upcoming = MIN(upcoming, s->systimer.c2_expire);
-  upcoming = MIN(upcoming, s->systimer.c3_expire);
-  put32(TIMER_C3, get32(TIMER_CLO) + upcoming);
+  uint32_t upcoming = 0xffffffff;
+  if (s->systimer.c0_expire && upcoming > s->systimer.c0_expire)
+    upcoming = s->systimer.c0_expire;
+  if (s->systimer.c1_expire && upcoming > s->systimer.c1_expire)
+    upcoming = s->systimer.c1_expire;
+  if (s->systimer.c2_expire && upcoming > s->systimer.c2_expire)
+    upcoming = s->systimer.c2_expire;
+  if (s->systimer.c3_expire && upcoming > s->systimer.c3_expire)
+    upcoming = s->systimer.c3_expire;
+
+  if (upcoming != 0xffffffff)
+    put32(TIMER_C3, get32(TIMER_CLO) + upcoming);
 
   int fired = (~s->systimer.cs) & matched;
   s->systimer.cs |= fired;
@@ -442,6 +453,10 @@ int bcm2837_is_fiq_asserted(struct task_struct *tsk) {
   return 0;
 }
 
+void bcm2837_debug(struct task_struct *tsk) {
+  struct bcm2837_state *s = (struct bcm2837_state *)tsk->board_data;
+}
+
 const struct board_ops bcm2837_board_ops = {
   .initialize = bcm2837_initialize,
   .mmio_read  = bcm2837_mmio_read,
@@ -450,4 +465,5 @@ const struct board_ops bcm2837_board_ops = {
   .leaving_vm = bcm2837_leaving_vm,
   .is_irq_asserted = bcm2837_is_irq_asserted,
   .is_fiq_asserted = bcm2837_is_fiq_asserted,
+  .debug = bcm2837_debug,
 };

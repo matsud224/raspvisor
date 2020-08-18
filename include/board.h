@@ -12,4 +12,5 @@ struct board_ops {
   void (*leaving_vm)(struct task_struct *);
   int (*is_irq_asserted)(struct task_struct *);
   int (*is_fiq_asserted)(struct task_struct *);
+  void (*debug)(struct task_struct *);
 };

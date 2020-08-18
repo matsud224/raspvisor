@@ -20,9 +20,11 @@ static void prepare_task(loader_func_t loader, void *arg) {
   regs->pstate = PSR_MODE_EL1h;
   regs->pstate |= (0xf << 6); // interrupt mask
 
+  disable_irq();
   if (loader(arg, &regs->pc, &regs->sp) < 0) {
     PANIC("failed to load");
   }
+  enable_irq();
 
   set_cpu_sysregs(current);
 

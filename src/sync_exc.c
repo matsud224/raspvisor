@@ -164,19 +164,20 @@ void handle_sync_exception(unsigned long esr, unsigned long elr,
     unsigned long far, unsigned long hvc_nr) {
   int eclass = (esr >> ESR_EL2_EC_SHIFT) & 0x3f;
 
-  current->stat.trap_count++;
-
   switch (eclass) {
   case ESR_EL2_EC_TRAP_WFX:
+    current->stat.wfx_trap_count++;
     handle_trap_wfx();
     break;
   case ESR_EL2_EC_TRAP_FP_REG:
     WARN("TRAP_FP_REG is not implemented.");
     break;
   case ESR_EL2_EC_HVC64:
+    current->stat.hvc_trap_count++;
     handle_hvc64(hvc_nr);
     break;
   case ESR_EL2_EC_TRAP_SYSTEM:
+    current->stat.sysreg_trap_count++;
     handle_trap_system(esr);
     break;
   case ESR_EL2_EC_TRAP_SVE:

@@ -131,11 +131,12 @@ const char *task_state_str[] = {
 
 void show_task_list() {
   preempt_disable();
-  printf("%3s %8s %7s %7s\n", "id", "state", "pages", "traps");
+  printf("%3s %8s %7s %7s %7s %7s %7s %7s\n", "id", "state", "pages", "wfx", "hvc", "sysreg", "pf", "mmio");
   for (int i = 0; i < nr_tasks; i++) {
     struct task_struct *tsk = task[i];
-    printf("%3d %8s %7d %7d\n", tsk->pid, task_state_str[tsk->state],
-        tsk->mm.user_pages_count, tsk->stat.trap_count);
+    printf("%3d %8s %7d %7d %7d %7d %7d %7d\n", tsk->pid, task_state_str[tsk->state],
+        tsk->mm.user_pages_count, tsk->stat.wfx_trap_count, tsk->stat.hvc_trap_count,
+        tsk->stat.sysreg_trap_count, tsk->stat.pf_count, tsk->stat.mmio_count);
   }
   preempt_enable();
 }

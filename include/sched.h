@@ -54,8 +54,8 @@ struct cpu_sysregs {
   unsigned long elr_el1;
   unsigned long fpcr;
   unsigned long fpsr;
-  unsigned long midr_el1;
-  unsigned long mpidr_el1;
+  unsigned long midr_el1; // ro
+  unsigned long mpidr_el1; // ro
   unsigned long par_el1;
   unsigned long sp_el0;
   unsigned long sp_el1;
@@ -69,41 +69,41 @@ struct cpu_sysregs {
   unsigned long actlr_el1; // rw
 
   // trapped by TID3
-  unsigned long id_pfr0_el1; // r
-  unsigned long id_pfr1_el1; // r
-  unsigned long id_mmfr0_el1; // r
-  unsigned long id_mmfr1_el1; // r
-  unsigned long id_mmfr2_el1; // r
-  unsigned long id_mmfr3_el1; // r
-  unsigned long id_isar0_el1; // r
-  unsigned long id_isar1_el1; // r
-  unsigned long id_isar2_el1; // r
-  unsigned long id_isar3_el1; // r
-  unsigned long id_isar4_el1; // r
-  unsigned long id_isar5_el1; // r
-  unsigned long mvfr0_el1; // r
-  unsigned long mvfr1_el1; // r
-  unsigned long mvfr2_el1; // r
-  unsigned long id_aa64pfr0_el1; // r
-  unsigned long id_aa64pfr1_el1; // r
-  unsigned long id_aa64dfr0_el1; // r
-  unsigned long id_aa64dfr1_el1; // r
-  unsigned long id_aa64isar0_el1; // r
-  unsigned long id_aa64isar1_el1; // r
-  unsigned long id_aa64mmfr0_el1; // r
-  unsigned long id_aa64mmfr1_el1; // r
-  unsigned long id_aa64afr0_el1; // r
-  unsigned long id_aa64afr1_el1; // r
+  unsigned long id_pfr0_el1; // ro
+  unsigned long id_pfr1_el1; // ro
+  unsigned long id_mmfr0_el1; // ro
+  unsigned long id_mmfr1_el1; // ro
+  unsigned long id_mmfr2_el1; // ro
+  unsigned long id_mmfr3_el1; // ro
+  unsigned long id_isar0_el1; // ro
+  unsigned long id_isar1_el1; // ro
+  unsigned long id_isar2_el1; // ro
+  unsigned long id_isar3_el1; // ro
+  unsigned long id_isar4_el1; // ro
+  unsigned long id_isar5_el1; // ro
+  unsigned long mvfr0_el1; // ro
+  unsigned long mvfr1_el1; // ro
+  unsigned long mvfr2_el1; // ro
+  unsigned long id_aa64pfr0_el1; // ro
+  unsigned long id_aa64pfr1_el1; // ro
+  unsigned long id_aa64dfr0_el1; // ro
+  unsigned long id_aa64dfr1_el1; // ro
+  unsigned long id_aa64isar0_el1; // ro
+  unsigned long id_aa64isar1_el1; // ro
+  unsigned long id_aa64mmfr0_el1; // ro
+  unsigned long id_aa64mmfr1_el1; // ro
+  unsigned long id_aa64afr0_el1; // ro
+  unsigned long id_aa64afr1_el1; // ro
 
   // trapped by TID2
-  unsigned long ctr_el0; // r
-  unsigned long ccsidr_el1; // r
-  unsigned long clidr_el1; // r
+  unsigned long ctr_el0; // ro
+  unsigned long ccsidr_el1; // ro
+  unsigned long clidr_el1; // ro
   unsigned long csselr_el1; // rw
 
   // trapped by TID1
-  unsigned long aidr_el1; // r
-  unsigned long revidr_el1; // r
+  unsigned long aidr_el1; // ro
+  unsigned long revidr_el1; // ro
 
   // system timer
   unsigned long cntkctl_el1;
@@ -152,8 +152,8 @@ extern void schedule(void);
 extern void timer_tick(void);
 extern void preempt_disable(void);
 extern void preempt_enable(void);
-extern void set_cpu_sysregs(struct task_struct *);
 extern void set_cpu_virtual_interrupt(struct task_struct *);
+void set_cpu_sysregs(struct task_struct *);
 extern void switch_to(struct task_struct *);
 extern void cpu_switch_to(struct task_struct *, struct task_struct *);
 extern void exit_task(void);

@@ -50,13 +50,8 @@ set_stage2_pgd:
   isb
   ret
 
-.globl set_sp_el2
-set_sp_el2:
-  msr sp_el2, x0
-  ret
-
-.globl _set_sysregs
-_set_sysregs:
+.globl restore_sysregs
+restore_sysregs:
   ldp x1, x2, [x0], #16
   msr sctlr_el1, x1
   msr ttbr0_el1, x2
@@ -94,13 +89,55 @@ _set_sysregs:
   msr tpidr_el1, x1
   msr tpidrro_el0, x2
   ldr x1, [x0]
-  mrs x1, vbar_el1
+  msr vbar_el1, x1
   dsb ish
   isb
   ret
 
-.globl _get_sysregs
-_get_sysregs:
+.globl save_sysregs
+save_sysregs:
+  mrs x1, sctlr_el1
+  mrs x2, ttbr0_el1
+  stp x1, x2, [x0], #16
+  mrs x1, ttbr1_el1
+  mrs x2, tcr_el1
+  stp x1, x2, [x0], #16
+  mrs x1, esr_el1
+  mrs x2, far_el1
+  stp x1, x2, [x0], #16
+  mrs x1, afsr0_el1
+  mrs x2, afsr1_el1
+  stp x1, x2, [x0], #16
+  mrs x1, mair_el1
+  mrs x2, amair_el1
+  stp x1, x2, [x0], #16
+  mrs x1, contextidr_el1
+  mrs x2, cpacr_el1
+  stp x1, x2, [x0], #16
+  mrs x1, elr_el1
+  mrs x2, fpcr
+  stp x1, x2, [x0], #16
+  mrs x1, fpsr
+  mrs x2, midr_el1
+  stp x1, x2, [x0], #16
+  mrs x1, mpidr_el1
+  mrs x2, par_el1
+  stp x1, x2, [x0], #16
+  mrs x1, sp_el0
+  mrs x2, sp_el1
+  stp x1, x2, [x0], #16
+  mrs x1, spsr_el1
+  mrs x2, tpidr_el0
+  stp x1, x2, [x0], #16
+  mrs x1, tpidr_el1
+  mrs x2, tpidrro_el0
+  stp x1, x2, [x0], #16
+  mrs x1, vbar_el1
+  str x1, [x0]
+  ret
+
+.globl get_all_sysregs
+get_all_sysregs:
   mrs x1, sctlr_el1
   mrs x2, ttbr0_el1
   stp x1, x2, [x0], #16

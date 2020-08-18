@@ -41,6 +41,7 @@ void _schedule(void) {
       }
     }
   }
+  INFO("task switching to %d", next);
   switch_to(task[next]);
   preempt_enable();
 }
@@ -48,11 +49,6 @@ void _schedule(void) {
 void schedule(void) {
   current->counter = 0;
   _schedule();
-}
-
-void set_cpu_sysregs(struct task_struct *tsk) {
-  set_stage2_pgd(tsk->mm.first_table, tsk->pid);
-  _set_sysregs(&tsk->cpu_sysregs);
 }
 
 void set_cpu_virtual_interrupt(struct task_struct *tsk) {
@@ -75,7 +71,6 @@ void switch_to(struct task_struct *next) {
   struct task_struct *prev = current;
   current = next;
 
-  set_cpu_sysregs(current);
 
   cpu_switch_to(prev, next);
 }
@@ -103,8 +98,15 @@ void exit_task() {
   schedule();
 }
 
+void set_cpu_sysregs(struct task_struct *tsk) {
+  set_stage2_pgd(tsk->mm.first_table, tsk->pid);
+  restore_sysregs(&tsk->cpu_sysregs);
+}
+
 void vm_entering_work() {
+  set_cpu_sysregs(current);
   set_cpu_virtual_interrupt(current);
+
   if (HAVE_FUNC(current->board_ops, entering_vm))
     current->board_ops->entering_vm(current);
 
@@ -113,6 +115,8 @@ void vm_entering_work() {
 }
 
 void vm_leaving_work() {
+  save_sysregs(&current->cpu_sysregs);
+
   if (HAVE_FUNC(current->board_ops, leaving_vm))
     current->board_ops->leaving_vm(current);
 

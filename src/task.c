@@ -37,7 +37,7 @@ static void prepare_initial_sysregs(void) {
   if (!is_first_call)
     return;
 
-  _get_sysregs(&initial_sysregs);
+  get_all_sysregs(&initial_sysregs);
   initial_sysregs.sctlr_el1 &= ~1; // surely disable MMU
 
   is_first_call = 0;

@@ -192,7 +192,7 @@ unsigned long handle_aux_read(struct task_struct *tsk, unsigned long addr) {
     } else {
       unsigned long data;
       dequeue_fifo(tsk->console.in_fifo, &data);
-      return data;
+      return data & 0xff;
     }
   case AUX_MU_IER_REG:
     if (s->aux.aux_mu_lcr & LCR_DLAB) {
@@ -422,6 +422,7 @@ void bcm2837_leaving_vm(struct task_struct *tsk) {
 }
 
 int bcm2837_is_irq_asserted(struct task_struct *tsk) {
+  return 1;
   return handle_intctrl_read(tsk, IRQ_BASIC_PENDING) != 0;
 }
 

@@ -58,8 +58,8 @@
   msr sp_el0, x24
   msr sp_el1, x25
 
-  ldp x22, x23, [sp, #16 * 16]
   ldp x30, x21, [sp, #16 * 15]
+  ldp x22, x23, [sp, #16 * 16]
 
   msr elr_el2, x22
   msr spsr_el2, x23

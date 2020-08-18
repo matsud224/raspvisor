@@ -25,4 +25,8 @@ unsigned long get_physical_timer_count() {
   return clo | (chi << 32);
 }
 
-
+void show_systimer_info() {
+  printf("HI: %x\nLO: %x\nCS:%x\nC1: %x\n",
+      get32(TIMER_CHI), get32(TIMER_CLO),
+      get32(TIMER_CS), get32(TIMER_C1));
+}

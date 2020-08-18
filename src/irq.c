@@ -26,6 +26,7 @@ const char *entry_error_messages[] = {
 
 void enable_interrupt_controller() {
   put32(ENABLE_IRQS_1, SYSTEM_TIMER_IRQ_1_BIT);
+  put32(ENABLE_IRQS_1, SYSTEM_TIMER_IRQ_3_BIT);
   put32(ENABLE_IRQS_1, AUX_IRQ_BIT);
 }
 
@@ -39,7 +40,11 @@ void handle_irq(void) {
   unsigned int irq = get32(IRQ_PENDING_1);
   if (irq & SYSTEM_TIMER_IRQ_1_BIT) {
     irq &= ~SYSTEM_TIMER_IRQ_1_BIT;
-    handle_timer_irq();
+    handle_timer1_irq();
+  }
+  if (irq & SYSTEM_TIMER_IRQ_3_BIT) {
+    irq &= ~SYSTEM_TIMER_IRQ_3_BIT;
+    handle_timer3_irq();
   }
   if (irq & AUX_IRQ_BIT) {
     irq &= ~AUX_IRQ_BIT;

@@ -12,11 +12,17 @@ void timer_init(void) {
   put32(TIMER_C1, curVal);
 }
 
-void handle_timer_irq(void) {
+// for task switch
+void handle_timer1_irq(void) {
   curVal += interval;
   put32(TIMER_C1, curVal);
   put32(TIMER_CS, TIMER_CS_M1);
   timer_tick();
+}
+
+// for vm's interrupt
+void handle_timer3_irq(void) {
+  put32(TIMER_CS, TIMER_CS_M3);
 }
 
 unsigned long get_physical_timer_count() {

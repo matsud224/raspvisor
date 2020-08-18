@@ -40,10 +40,10 @@ struct bcm2837_state {
     uint32_t c1;
     uint32_t c2;
     uint32_t c3;
-    uint64_t c0_long;
-    uint64_t c1_long;
-    uint64_t c2_long;
-    uint64_t c3_long;
+    uint32_t c0_expire;
+    uint32_t c1_expire;
+    uint32_t c2_expire;
+    uint32_t c3_expire;
   } systimer;
 };
 
@@ -326,14 +326,6 @@ unsigned long handle_systimer_read(struct task_struct *tsk, unsigned long addr) 
   return 0;
 }
 
-void update_timer_cmpval(unsigned long new_cmpval) {
-  unsigned long current_cmpval = get32(TIMER_C1) | ((unsigned long)get32(TIMER_CHI) << 32);
-
-  if (current_cmpval > new_cmpval &&
-      get_physical_timer_count() < new_cmpval)
-    put32(TIMER_C1, new_cmpval & 0xffffffff);
-}
-
 void handle_systimer_write(struct task_struct *tsk, unsigned long addr, unsigned long val) {
   struct bcm2837_state *s = (struct bcm2837_state *)tsk->board_data;
 
@@ -348,19 +340,19 @@ void handle_systimer_write(struct task_struct *tsk, unsigned long addr, unsigned
     break;
   case TIMER_C0:
     s->systimer.c0 = val;
-    s->systimer.c0_long = TO_LONG_COMPARE_VALUE(val);
+    s->systimer.c0_expire = val - handle_systimer_read(tsk, TIMER_CLO);
     break;
   case TIMER_C1:
     s->systimer.c1 = val;
-    s->systimer.c1_long = TO_LONG_COMPARE_VALUE(val);
+    s->systimer.c1_expire = val - handle_systimer_read(tsk, TIMER_CLO);
     break;
   case TIMER_C2:
     s->systimer.c2 = val;
-    s->systimer.c2_long = TO_LONG_COMPARE_VALUE(val);
+    s->systimer.c2_expire = val - handle_systimer_read(tsk, TIMER_CLO);
     break;
   case TIMER_C3:
     s->systimer.c3 = val;
-    s->systimer.c3_long = TO_LONG_COMPARE_VALUE(val);
+    s->systimer.c3_expire = val - handle_systimer_read(tsk, TIMER_CLO);
     break;
   }
 }
@@ -386,6 +378,19 @@ void bcm2837_mmio_write(struct task_struct *tsk, unsigned long addr, unsigned lo
   }
 }
 
+static int check_expiration(uint32_t *expire, uint64_t lapse) {
+  if (*expire == 0)
+    return 0;
+
+  if (lapse >= *expire) {
+    *expire = 0;
+    return 1;
+  } else {
+    *expire -= lapse;
+    return 0;
+  }
+}
+
 void bcm2837_entering_vm(struct task_struct *tsk) {
   struct bcm2837_state *s = (struct bcm2837_state *)tsk->board_data;
 
@@ -395,17 +400,18 @@ void bcm2837_entering_vm(struct task_struct *tsk) {
     current_physical_count - s->systimer.last_physical_count;
 
   // update cs register
-  unsigned long current_virt_count = TO_VIRTUAL_COUNT(s, current_physical_count);
-  int matched = (current_virt_count >= s->systimer.c0_long) |
-    ((current_virt_count >= s->systimer.c1_long) << 1) |
-    ((current_virt_count >= s->systimer.c2_long) << 2) |
-    ((current_virt_count >= s->systimer.c3_long) << 3);
+  uint64_t lapse = current_physical_count - s->systimer.last_physical_count;
+  int matched = (check_expiration(&s->systimer.c0_expire, lapse)) |
+    (check_expiration(&s->systimer.c1_expire, lapse) << 1) |
+    (check_expiration(&s->systimer.c2_expire, lapse) << 2) |
+    (check_expiration(&s->systimer.c3_expire, lapse) << 3);
 
   // update (physical) timer compare value for upcoming timer match
-  update_timer_cmpval(TO_PHYSICAL_COUNT(s, s->systimer.c0_long));
-  update_timer_cmpval(TO_PHYSICAL_COUNT(s, s->systimer.c1_long));
-  update_timer_cmpval(TO_PHYSICAL_COUNT(s, s->systimer.c2_long));
-  update_timer_cmpval(TO_PHYSICAL_COUNT(s, s->systimer.c3_long));
+  uint32_t upcoming = s->systimer.c0_expire;
+  upcoming = MIN(upcoming, s->systimer.c1_expire);
+  upcoming = MIN(upcoming, s->systimer.c2_expire);
+  upcoming = MIN(upcoming, s->systimer.c3_expire);
+  put32(TIMER_C3, get32(TIMER_CLO) + upcoming);
 
   int fired = (~s->systimer.cs) & matched;
   s->systimer.cs |= fired;

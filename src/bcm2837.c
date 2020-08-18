@@ -333,6 +333,7 @@ unsigned long handle_systimer_read(struct task_struct *tsk, unsigned long addr) 
 
 void update_timer_cmpval(unsigned long new_cmpval) {
   unsigned long current_cmpval = get32(TIMER_C1) | ((unsigned long)get32(TIMER_CHI) << 32);
+  return;
 
   if (current_cmpval > new_cmpval &&
       get_physical_timer_count() < new_cmpval)
@@ -422,7 +423,6 @@ void bcm2837_leaving_vm(struct task_struct *tsk) {
 }
 
 int bcm2837_is_irq_asserted(struct task_struct *tsk) {
-  return 1;
   return handle_intctrl_read(tsk, IRQ_BASIC_PENDING) != 0;
 }
 

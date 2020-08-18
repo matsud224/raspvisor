@@ -38,18 +38,16 @@ void hypervisor_main() {
     return;
   }
 
-  /*
   struct raw_binary_loader_args bl_args2 = {
     .load_addr = 0x0,
     .entry_point = 0x0,
     .sp = 0x100000,
-    .filename = "test2.bin",
+    .filename = "test.bin",
   };
   if (create_task(raw_binary_loader, &bl_args2) < 0) {
     printf("error while starting task #2");
     return;
   }
-  */
   /*
   if (create_task(test_program_loader, (void *)2) < 0) {
     printf("error while starting task #2");

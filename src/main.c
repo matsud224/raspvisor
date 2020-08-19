@@ -22,7 +22,6 @@ void hypervisor_main() {
   irq_vector_init();
   timer_init();
   enable_interrupt_controller();
-  enable_irq();
 
   if (sd_init() < 0)
     PANIC("sd_init() failed.");
@@ -42,12 +41,24 @@ void hypervisor_main() {
     .load_addr = 0x0,
     .entry_point = 0x0,
     .sp = 0x100000,
-    .filename = "test.bin",
+    .filename = "test2.bin",
   };
   if (create_task(raw_binary_loader, &bl_args2) < 0) {
     printf("error while starting task #2");
     return;
   }
+  struct raw_binary_loader_args bl_args3 = {
+    .load_addr = 0x0,
+    .entry_point = 0x0,
+    .sp = 0x100000,
+    .filename = "test.bin",
+  };
+  if (create_task(raw_binary_loader, &bl_args3) < 0) {
+    printf("error while starting task #1");
+    return;
+  }
+
+
   /*
   if (create_task(test_program_loader, (void *)2) < 0) {
     printf("error while starting task #2");
@@ -56,6 +67,8 @@ void hypervisor_main() {
   */
 
   while (1) {
+    disable_irq();
     schedule();
+    enable_irq();
   }
 }

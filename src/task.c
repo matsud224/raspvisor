@@ -20,11 +20,9 @@ static void prepare_task(loader_func_t loader, void *arg) {
   regs->pstate = PSR_MODE_EL1h;
   regs->pstate |= (0xf << 6); // interrupt mask
 
-  disable_irq();
   if (loader(arg, &regs->pc, &regs->sp) < 0) {
     PANIC("failed to load");
   }
-  enable_irq();
 
   set_cpu_sysregs(current);
 
@@ -51,7 +49,6 @@ void increment_current_pc(int ilen) {
 }
 
 int create_task(loader_func_t loader, void *arg) {
-  preempt_disable();
   struct task_struct *p;
 
   unsigned long page = allocate_page();
@@ -68,7 +65,6 @@ int create_task(loader_func_t loader, void *arg) {
   p->priority = current->priority;
   p->state = TASK_RUNNING;
   p->counter = p->priority;
-  p->preempt_count = 1; // disable preemtion until schedule_tail
 
   p->board_ops = &bcm2837_board_ops;
   if (HAVE_FUNC(p->board_ops, initialize))
@@ -86,7 +82,6 @@ int create_task(loader_func_t loader, void *arg) {
 
   init_task_console(p);
 
-  preempt_enable();
   return pid;
 }
 

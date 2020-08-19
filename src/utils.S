@@ -90,6 +90,7 @@ restore_sysregs:
   msr tpidrro_el0, x2
   ldr x1, [x0]
   msr vbar_el1, x1
+  tlbi vmalle1
   dsb ish
   isb
   ret

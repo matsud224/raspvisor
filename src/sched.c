@@ -13,12 +13,7 @@ struct task_struct *task[NR_TASKS] = {
 };
 int nr_tasks = 1;
 
-void preempt_disable(void) { current->preempt_count++; }
-
-void preempt_enable(void) { current->preempt_count--; }
-
 void _schedule(void) {
-  preempt_disable();
   int next, c;
   struct task_struct *p;
   while (1) {
@@ -43,7 +38,6 @@ void _schedule(void) {
   }
   //INFO("task switching to %d", next);
   switch_to(task[next]);
-  preempt_enable();
 }
 
 void schedule(void) {
@@ -75,11 +69,9 @@ void switch_to(struct task_struct *next) {
   cpu_switch_to(prev, next);
 }
 
-void schedule_tail(void) { preempt_enable(); }
-
 void timer_tick() {
   --current->counter;
-  if (current->counter > 0 || current->preempt_count > 0) {
+  if (current->counter > 0) {
     return;
   }
   current->counter = 0;
@@ -87,14 +79,12 @@ void timer_tick() {
 }
 
 void exit_task() {
-  preempt_disable();
   for (int i = 0; i < NR_TASKS; i++) {
     if (task[i] == current) {
       task[i]->state = TASK_ZOMBIE;
       break;
     }
   }
-  preempt_enable();
   schedule();
 }
 
@@ -130,7 +120,6 @@ const char *task_state_str[] = {
 };
 
 void show_task_list() {
-  preempt_disable();
   printf("%3s %8s %7s %7s %7s %7s %7s %7s %7s\n", "id", "state", "pages", "saved-pc", "wfx", "hvc", "sysreg", "pf", "mmio");
   for (int i = 0; i < nr_tasks; i++) {
     struct task_struct *tsk = task[i];
@@ -138,5 +127,4 @@ void show_task_list() {
         tsk->mm.user_pages_count, task_pt_regs(tsk)->pc, tsk->stat.wfx_trap_count, tsk->stat.hvc_trap_count,
         tsk->stat.sysreg_trap_count, tsk->stat.pf_count, tsk->stat.mmio_count);
   }
-  preempt_enable();
 }

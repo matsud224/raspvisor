@@ -136,6 +136,7 @@ int toupper(int c) {
   else
     return c;
 }
+
 int tolower(int c) {
   if (c >= 'A' && c <= 'Z')
     return c + ('a' - 'A');

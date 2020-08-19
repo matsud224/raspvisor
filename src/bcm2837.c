@@ -330,6 +330,7 @@ unsigned long handle_systimer_read(struct task_struct *tsk, unsigned long addr) 
 void handle_systimer_write(struct task_struct *tsk, unsigned long addr, unsigned long val) {
   struct bcm2837_state *s = (struct bcm2837_state *)tsk->board_data;
   uint32_t current_clo = handle_systimer_read(tsk, TIMER_CLO);
+  const uint32_t min_expire = 10000; // if this value is too short, CLO exceeds this value (timing problem)
 
   switch (addr) {
   case TIMER_CS:
@@ -337,21 +338,19 @@ void handle_systimer_write(struct task_struct *tsk, unsigned long addr, unsigned
     break;
   case TIMER_C0:
     s->systimer.c0 = val;
-    s->systimer.c0_expire = val > current_clo ? val - current_clo : 10000;
+    s->systimer.c0_expire = MAX(val > current_clo ? val - current_clo : 1, min_expire);
     break;
   case TIMER_C1:
     s->systimer.c1 = val;
-    s->systimer.c1_expire = val > current_clo ? val - current_clo : 10000;
-    if (s->systimer.c1_expire == 0)
-      PANIC("ASSERTION FAILED");
+    s->systimer.c1_expire = MAX(val > current_clo ? val - current_clo : 1, min_expire);
     break;
   case TIMER_C2:
     s->systimer.c2 = val;
-    s->systimer.c2_expire = val > current_clo ? val - current_clo : 10000;
+    s->systimer.c2_expire = MAX(val > current_clo ? val - current_clo : 1, min_expire);
     break;
   case TIMER_C3:
     s->systimer.c3 = val;
-    s->systimer.c3_expire = val > current_clo ? val - current_clo : 10000;
+    s->systimer.c3_expire = MAX(val > current_clo ? val - current_clo : 1, min_expire);
     break;
   }
 }

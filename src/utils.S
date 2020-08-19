@@ -45,7 +45,7 @@ set_stage2_pgd:
   // set address of PGD
   msr vttbr_el2, x0
   // TLB invalidate
-  tlbi vmalls12e1
+  //tlbi vmalls12e1
   dsb ish              // ensure completion of TLB invalidation
   isb
   ret
@@ -276,4 +276,10 @@ clear_vserror:
   mrs x0, hcr_el2
   bic x1, x0, #0x100
   msr hcr_el2, x1
+  ret
+
+.globl translate_el1
+translate_el1:
+  at s1e1r, x0
+  mrs x0, par_el1
   ret

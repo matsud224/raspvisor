@@ -4,7 +4,7 @@
 #include "debug.h"
 #include "board.h"
 
-const unsigned int interval = 10000;
+const unsigned int interval = 30000;
 
 void timer_init(void) {
   put32(TIMER_C1, get32(TIMER_CLO) + interval);

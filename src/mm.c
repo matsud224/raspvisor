@@ -92,6 +92,12 @@ void map_stage2_page(struct task_struct *task, unsigned long va,
   task->mm.user_pages_count++;
 }
 
+unsigned long get_ipa(unsigned long va) {
+  unsigned long ipa = translate_el1(va);
+  ipa &= 0xFFFFFFFFF000;
+  ipa |= va & 0xFFF;
+  return ipa;
+}
 
 #define ISS_ABORT_DFSC_MASK  0x3f
 
@@ -105,7 +111,7 @@ int handle_mem_abort(unsigned long addr, unsigned long esr) {
     if (page == 0) {
       return -1;
     }
-    map_stage2_page(current, addr & PAGE_MASK, page, MMU_STAGE2_PAGE_FLAGS);
+    map_stage2_page(current, get_ipa(addr) & PAGE_MASK, page, MMU_STAGE2_PAGE_FLAGS);
     current->stat.pf_count++;
     return 0;
   } else if (dfsc >> 2 == 0x3) {
@@ -116,10 +122,10 @@ int handle_mem_abort(unsigned long addr, unsigned long esr) {
     int wnr = (esr >> 6) & 0x1;
     if (wnr == 0) {
       if (HAVE_FUNC(ops, mmio_read))
-        regs->regs[srt] = ops->mmio_read(current, addr);
+        regs->regs[srt] = ops->mmio_read(current, get_ipa(addr));
     } else {
       if (HAVE_FUNC(ops, mmio_write))
-        ops->mmio_write(current, addr, regs->regs[srt]);
+        ops->mmio_write(current, get_ipa(addr), regs->regs[srt]);
     }
 
     increment_current_pc(4);

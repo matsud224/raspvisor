@@ -34,18 +34,24 @@
 #ifndef __ASSEMBLER__
 
 #include "sched.h"
+#include <inttypes.h>
 
-unsigned long get_free_page();
-void free_page(unsigned long p);
-void map_stage2_page(struct task_struct *task, unsigned long va,
-                     unsigned long page, unsigned long flags);
+typedef uint64_t paddr_t;
+typedef uint64_t vaddr_t;
 
-unsigned long allocate_page();
-unsigned long allocate_task_page(struct task_struct *task, unsigned long va);
-void set_task_page_notaccessable(struct task_struct *task, unsigned long va);
+#define TO_VADDR(pa) ((vaddr_t)pa + VA_START)
+#define TO_PADDR(pa) ((paddr_t)pa - VA_START)
 
-int handle_mem_abort(unsigned long addr, unsigned long esr);
+void map_stage2_page(struct task_struct *task, vaddr_t va,
+                     paddr_t page, uint64_t flags);
 
-extern unsigned long pg_dir;
+void *allocate_page(void);
+void deallocate_page(void *);
+void *allocate_task_page(struct task_struct *task, vaddr_t va);
+void set_task_page_notaccessable(struct task_struct *task, vaddr_t va);
+
+int handle_mem_abort(vaddr_t addr, uint64_t esr);
+
+extern paddr_t pg_dir;
 
 #endif

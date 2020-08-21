@@ -26,7 +26,7 @@ static void prepare_task(loader_func_t loader, void *arg) {
 
   set_cpu_sysregs(current);
 
-  INFO("entering el1...");
+  INFO("loaded");
 }
 
 static struct cpu_sysregs initial_sysregs;
@@ -51,8 +51,7 @@ void increment_current_pc(int ilen) {
 int create_task(loader_func_t loader, void *arg) {
   struct task_struct *p;
 
-  unsigned long page = allocate_page();
-  p = (struct task_struct *)page;
+  p = (struct task_struct *)allocate_page();
   struct pt_regs *childregs = task_pt_regs(p);
 
   if (!p)
@@ -72,7 +71,7 @@ int create_task(loader_func_t loader, void *arg) {
     p->board_ops->initialize(p);
 
   prepare_initial_sysregs();
-  memcpy((unsigned long)&p->cpu_sysregs, (unsigned long)&initial_sysregs,
+  memcpy(&p->cpu_sysregs, &initial_sysregs,
          sizeof(struct cpu_sysregs));
 
   p->cpu_context.pc = (unsigned long)switch_from_kthread;

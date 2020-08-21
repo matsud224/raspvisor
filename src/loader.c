@@ -57,37 +57,3 @@ int raw_binary_loader (void *arg, unsigned long *pc,
 
   return 0;
 }
-
-int test_program_loader (void *arg, unsigned long *pc,
-    unsigned long *sp) {
-  extern unsigned long el1_test_1;
-  extern unsigned long el1_test_2;
-  extern unsigned long el1_test_begin;
-  extern unsigned long el1_test_end;
-
-  unsigned long begin = (unsigned long)&el1_test_begin;
-  unsigned long end = (unsigned long)&el1_test_end;
-  unsigned long size = end - begin;
-  unsigned long func = (unsigned long)&el1_test_1;
-
-  switch ((unsigned long)arg) {
-  case 1:
-    func = (unsigned long)&el1_test_1;
-    break;
-  case 2:
-    func = (unsigned long)&el1_test_2;
-    break;
-  }
-  unsigned long entry_point = func - begin;
-
-  unsigned long code_page = allocate_task_page(current, 0);
-  if (code_page == 0) {
-    return -1;
-  }
-  memcpy(code_page, begin, size);
-
-  *pc = entry_point;
-  *sp = 2 * PAGE_SIZE;
-
-  return 0;
-}

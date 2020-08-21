@@ -7,8 +7,8 @@
 
 struct cpu_sysregs;
 
-void memzero(unsigned long, unsigned long);
-void memcpy(unsigned long, unsigned long, unsigned long);
+void memzero(void *, size_t);
+void memcpy(void *, const void *, size_t);
 
 extern void delay(unsigned long);
 extern void put32(unsigned long, unsigned int);

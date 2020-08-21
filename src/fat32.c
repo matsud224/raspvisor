@@ -106,13 +106,13 @@ int fat32_get_handle(struct fat32_fs *fat32) {
     WARN("not a FAT32 partition");
     return -1;
   }
-  free_page(bbuf);
+  deallocate_page(bbuf);
 
   uint32_t first_lba = mbr->partitiontable[0].first_lba;
   bbuf = alloc_and_readblock(mbr->partitiontable[0].first_lba);
   fat32->boot = *(struct fat32_boot *)bbuf;
   struct fat32_boot *boot = &(fat32->boot);
-  free_page(bbuf);
+  deallocate_page(bbuf);
 
   fat32->fatstart = boot->BPB_RsvdSecCnt;
   fat32->fatsectors = boot->BPB_FATSz32 * boot->BPB_NumFATs;
@@ -139,7 +139,7 @@ static uint32_t fatent_read(struct fat32_fs *fat32, uint32_t index) {
   uint32_t offset = index * 4 % boot->BPB_BytsPerSec;
   uint8_t *bbuf = alloc_and_readblock(sector + fat32->volume_first);
   uint32_t entry = *((uint32_t *)(bbuf + offset)) & 0x0fffffff;
-  free_page(bbuf);
+  deallocate_page(bbuf);
   return entry;
 }
 
@@ -156,7 +156,7 @@ static uint32_t walk_cluster_chain(struct fat32_fs *fat32, uint32_t offset, uint
     uint32_t offset = cluster * 4 % boot->BPB_BytsPerSec;
     if (prevsector != sector) {
       if (bbuf != NULL)
-        free_page(bbuf);
+        deallocate_page(bbuf);
       bbuf = alloc_and_readblock(sector + fat32->volume_first);
     }
     cluster = *((uint32_t *)(bbuf + offset)) & 0x0fffffff;
@@ -167,7 +167,7 @@ static uint32_t walk_cluster_chain(struct fat32_fs *fat32, uint32_t offset, uint
   }
 exit:
   if (bbuf != NULL)
-    free_page(bbuf);
+    deallocate_page(bbuf);
   return cluster;
 }
 
@@ -290,7 +290,7 @@ static int fat32_lookup_main(struct fat32_file *fatfile, const char *name, struc
       char *dent_name = NULL;
 
       dent_name = get_lfn(dent, i, prevbuf ?
-          prevbuf + (BLOCKSIZE - sizeof(struct fat32_dent)) : NULL);
+          (struct fat32_dent *)(prevbuf + (BLOCKSIZE - sizeof(struct fat32_dent))) : NULL);
       if (dent_name == NULL)
         dent_name = get_sfn(dent);
 
@@ -307,23 +307,23 @@ static int fat32_lookup_main(struct fat32_file *fatfile, const char *name, struc
     }
 
     if (prevbuf != NULL)
-      free_page(prevbuf);
+      deallocate_page(prevbuf);
     prevbuf = bbuf;
     bbuf = NULL;
     blkno = fat32_nextblk(fat32, blkno, &current_cluster);
   }
 
   if (prevbuf != NULL)
-    free_page(prevbuf);
+    deallocate_page(prevbuf);
   if (bbuf != NULL)
-    free_page(bbuf);
+    deallocate_page(bbuf);
   return -1;
 
 file_found:
   if (prevbuf != NULL)
-    free_page(prevbuf);
+    deallocate_page(prevbuf);
   if (bbuf != NULL)
-    free_page(bbuf);
+    deallocate_page(bbuf);
 
   return 0;
 }
@@ -352,7 +352,7 @@ int fat32_read(struct fat32_file *fatfile, void *buf, unsigned long offset, size
     uint8_t *bbuf = alloc_and_readblock(blkno + fat32->volume_first);
     uint32_t copylen = MIN(BLOCKSIZE - inblk_off, remain);
     memcpy(buf, bbuf + inblk_off, copylen);
-    free_page(bbuf);
+    deallocate_page(bbuf);
     buf += copylen;
     remain -= copylen;
 

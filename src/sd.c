@@ -401,14 +401,15 @@ int sd_init() {
   while (!(r & ACMD41_CMD_COMPLETE) && cnt--) {
     wait_cycles(400);
     r = sd_cmd(CMD_SEND_OP_COND, ACMD41_ARG_HC);
-    const char *ret = "";
+    /*const char *ret = "";
     if (r & ACMD41_CMD_COMPLETE)
       ret = "COMPLETE";
     if (r & ACMD41_VOLTAGE)
       ret = "VOLTAGE";
     if (r & ACMD41_CMD_CCS)
       ret = "CCS";
-    //INFO("EMMC: CMD_SEND_OP_COND returned %s %x %x", ret, r >> 32, r);
+    INFO("EMMC: CMD_SEND_OP_COND returned %s %x %x", ret, r >> 32, r);
+    */
     if (sd_err != SD_TIMEOUT && sd_err != SD_OK) {
       WARN("ERROR: EMMC ACMD41 returned error");
       return sd_err;
@@ -461,12 +462,13 @@ int sd_init() {
     put32(EMMC_CONTROL0, get32(EMMC_CONTROL0) | C0_HCTL_DWITDH);
   }
   // add software flag
-  const char *suppstr = "";
+  /*const char *suppstr = "";
   if (sd_scr[0] & SCR_SUPP_SET_BLKCNT)
     suppstr = "SET_BLKCNT ";
   if (ccs)
     suppstr = "CCS ";
-  //INFO("EMMC: supports %s", suppstr);
+  INFO("EMMC: supports %s", suppstr);
+  */
   sd_scr[0] &= ~SCR_SUPP_CCS;
   sd_scr[0] |= ccs;
   return SD_OK;

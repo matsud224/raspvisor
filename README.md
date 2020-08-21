@@ -19,6 +19,7 @@ Programs runs on a hypervisor startup are hard-coded in `src/main.c`. In `exampl
 Enter each directory and `make` to build. Then copy `*.bin` file to `SD_BOOT_DIR`.
 
 # Usage
+UART is assigned to the hypervisor's console. Connect your cable to the GPIO 14/15 pins.
 * <kbd>?</kbd> + <kbd>l</kbd> : show the list of VMs
 * <kbd>?</kbd> + <kbd>1-9</kbd> : switch to the console of VM 1-9
 

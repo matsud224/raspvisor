@@ -28,34 +28,25 @@ void hypervisor_main() {
   if (sd_init() < 0)
     PANIC("sd_init() failed.");
 
-  struct raw_binary_loader_args bl_args = {
-    .load_addr = 0x0,
-    .entry_point = 0x0,
-    .sp = 0x100000,
-    .filename = "test3.bin",
-  };
-  if (create_task(raw_binary_loader, &bl_args) < 0) {
-    printf("error while starting task #1");
-    return;
-  }
   struct raw_binary_loader_args bl_args1 = {
     .load_addr = 0x0,
     .entry_point = 0x0,
     .sp = 0x100000,
-    .filename = "ssp.bin",
+    .filename = "mini-os.bin",
   };
   if (create_task(raw_binary_loader, &bl_args1) < 0) {
-    printf("error while starting task #2");
+    printf("error while starting task");
     return;
   }
+
   struct raw_binary_loader_args bl_args2 = {
     .load_addr = 0x0,
     .entry_point = 0x0,
     .sp = 0x100000,
-    .filename = "test.bin",
+    .filename = "echo.bin",
   };
   if (create_task(raw_binary_loader, &bl_args2) < 0) {
-    printf("error while starting task #1");
+    printf("error while starting task");
     return;
   }
 
@@ -63,39 +54,34 @@ void hypervisor_main() {
     .load_addr = 0x0,
     .entry_point = 0x0,
     .sp = 0x100000,
-    .filename = "test3.bin",
+    .filename = "mini-os.bin",
   };
   if (create_task(raw_binary_loader, &bl_args3) < 0) {
     printf("error while starting task #2");
     return;
   }
+
   struct raw_binary_loader_args bl_args4 = {
     .load_addr = 0x0,
     .entry_point = 0x0,
     .sp = 0x100000,
-    .filename = "test.bin",
+    .filename = "echo.bin",
   };
   if (create_task(raw_binary_loader, &bl_args4) < 0) {
-    printf("error while starting task #1");
+    printf("error while starting task");
     return;
   }
+
   struct raw_binary_loader_args bl_args5 = {
     .load_addr = 0x0,
     .entry_point = 0x0,
     .sp = 0x100000,
-    .filename = "ssp.bin",
+    .filename = "mini-os.bin",
   };
   if (create_task(raw_binary_loader, &bl_args5) < 0) {
-    printf("error while starting task #1");
+    printf("error while starting task");
     return;
   }
-
-  /*
-  if (create_task(test_program_loader, (void *)2) < 0) {
-    printf("error while starting task #2");
-    return;
-  }
-  */
 
   while (1) {
     disable_irq();

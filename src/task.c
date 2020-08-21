@@ -65,6 +65,7 @@ int create_task(loader_func_t loader, void *arg) {
   p->priority = current->priority;
   p->state = TASK_RUNNING;
   p->counter = p->priority;
+  p->name = "VM";
 
   p->board_ops = &bcm2837_board_ops;
   if (HAVE_FUNC(p->board_ops, initialize))
@@ -96,4 +97,8 @@ void flush_task_console(struct task_struct *tsk) {
   while(dequeue_fifo(outfifo, &val) == 0) {
     printf("%c", val & 0xff);
   }
+}
+
+void init_initial_task() {
+  task[0]->name = "IDLE";
 }

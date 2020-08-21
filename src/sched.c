@@ -119,10 +119,10 @@ const char *task_state_str[] = {
 };
 
 void show_task_list() {
-  printf("%3s %8s %7s %8s %7s %7s %7s %7s %7s\n", "id", "state", "pages", "saved-pc", "wfx", "hvc", "sysreg", "pf", "mmio");
+  printf("%3s %12s %8s %7s %8s %7s %7s %7s %7s %7s\n", "id", "name", "state", "pages", "saved-pc", "wfx", "hvc", "sysreg", "pf", "mmio");
   for (int i = 0; i < nr_tasks; i++) {
     struct task_struct *tsk = task[i];
-    printf("%3d %8s %7d %8x %7d %7d %7d %7d %7d\n", tsk->pid, task_state_str[tsk->state],
+    printf("%3d %12s %8s %7d %8x %7d %7d %7d %7d %7d\n", tsk->pid, tsk->name ? tsk->name : "", task_state_str[tsk->state],
         tsk->mm.user_pages_count, task_pt_regs(tsk)->pc, tsk->stat.wfx_trap_count, tsk->stat.hvc_trap_count,
         tsk->stat.sysreg_trap_count, tsk->stat.pf_count, tsk->stat.mmio_count);
   }

@@ -21,6 +21,7 @@ void init_task_console(struct task_struct *);
 int is_uart_forwarded_task(struct task_struct *);
 void flush_task_console(struct task_struct *);
 void increment_current_pc(int);
+void init_initial_task(void);
 
 struct pt_regs {
   unsigned long regs[31];

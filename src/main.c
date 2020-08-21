@@ -19,6 +19,7 @@ void hypervisor_main() {
   printf("=== raspvisor ===\n");
 
   init_task_console(current);
+  init_initial_task();
   irq_vector_init();
   timer_init();
   disable_irq();
@@ -41,7 +42,7 @@ void hypervisor_main() {
     .load_addr = 0x0,
     .entry_point = 0x0,
     .sp = 0x100000,
-    .filename = "test3.bin",
+    .filename = "ssp.bin",
   };
   if (create_task(raw_binary_loader, &bl_args1) < 0) {
     printf("error while starting task #2");
@@ -82,7 +83,7 @@ void hypervisor_main() {
     .load_addr = 0x0,
     .entry_point = 0x0,
     .sp = 0x100000,
-    .filename = "test3.bin",
+    .filename = "ssp.bin",
   };
   if (create_task(raw_binary_loader, &bl_args5) < 0) {
     printf("error while starting task #1");

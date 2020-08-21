@@ -39,6 +39,8 @@ int load_file_to_memory(struct task_struct *tsk, const char *name, unsigned long
     current_va += PAGE_SIZE;
   }
 
+  tsk->name = name;
+
   return 0;
 }
 

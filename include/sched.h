@@ -143,6 +143,7 @@ struct task_struct {
   long preempt_count;
   long pid; // used as VMID
   unsigned long flags;
+  const char *name;
   const struct board_ops *board_ops;
   void *board_data;
   struct mm_struct mm;
@@ -166,7 +167,7 @@ extern void show_task_list(void);
 #define INIT_TASK  \
   {  \
     /* cpu_context */ {0}, \
-    /* state etc */    0, 0, 1, 0, 0, 0, 0, 0,  \
+    /* state etc */    0, 0, 1, 0, 0, 0, "", 0, 0,  \
     /* mm */          {0},  \
     /* cpu_sysregs */ {0},  \
     /* stat */        {0},  \

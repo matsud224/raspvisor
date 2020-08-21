@@ -166,7 +166,7 @@ extern void show_task_list(void);
 #define INIT_TASK  \
   {  \
     /* cpu_context */ {0}, \
-    /* state etc */    0, 0, 5, 0, 0, 0, 0, 0,  \
+    /* state etc */    0, 0, 1, 0, 0, 0, 0, 0,  \
     /* mm */          {0},  \
     /* cpu_sysregs */ {0},  \
     /* stat */        {0},  \

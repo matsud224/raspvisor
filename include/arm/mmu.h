@@ -35,7 +35,7 @@
 #define MM_STAGE2_ACCESS   (1 << 10)
 #define MM_STAGE2_SH       (3 << 8)
 #define MM_STAGE2_AP       (3 << 6)
-#define MM_STAGE2_MEMATTR  (0xf << 2)
+#define MM_STAGE2_MEMATTR  (0x5 << 2)  //TODO: temp. non-cacheable
 
 #define MMU_STAGE2_PAGE_FLAGS                                                  \
   (MM_TYPE_PAGE | MM_STAGE2_ACCESS | MM_STAGE2_SH | MM_STAGE2_AP | MM_STAGE2_MEMATTR)

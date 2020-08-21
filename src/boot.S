@@ -64,7 +64,10 @@ el2_entry:
   ldr x2, =hypervisor_main
 
   mov x0, #SCTLR_MMU_ENABLED
+  dsb ish
+  isb
   msr sctlr_el2, x0
+  isb
 
   br  x2
 

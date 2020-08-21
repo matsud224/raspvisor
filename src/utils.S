@@ -44,9 +44,7 @@ set_stage2_pgd:
   orr x0, x0, x1
   // set address of PGD
   msr vttbr_el2, x0
-  // TLB invalidate
-  //tlbi vmalls12e1
-  dsb ish              // ensure completion of TLB invalidation
+  dsb ish
   isb
   ret
 
@@ -90,13 +88,14 @@ restore_sysregs:
   msr tpidrro_el0, x2
   ldr x1, [x0]
   msr vbar_el1, x1
-  tlbi vmalle1
   dsb ish
   isb
   ret
 
 .globl save_sysregs
 save_sysregs:
+  dsb ish
+  isb
   mrs x1, sctlr_el1
   mrs x2, ttbr0_el1
   stp x1, x2, [x0], #16

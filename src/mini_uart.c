@@ -60,8 +60,6 @@ void handle_uart_irq(void) {
         flush_task_console(tsk);
     } else if (received == 'l') {
       show_task_list();
-    } else if (received == 't') {
-      show_systimer_info();
     } else if (received == ESCAPE_CHAR) {
       goto enqueue_char;
     }

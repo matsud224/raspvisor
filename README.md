@@ -40,7 +40,7 @@ UART is assigned to the hypervisor's console. Connect your cable to the GPIO 14/
 
 # License
 
-This project is licensed under the MIT license.
+This software is licensed under the MIT license.
 
 * Source codes and examples (echo and mini-os) are mostly based on [Sergey Matyukevich's raspberry-pi-os](https://github.com/s-matyukevich/raspberry-pi-os).
 * SD card driver (`src/sd.c`, `src/delays.c`, `include/sd.h` and `include/delays.h`) is from [bzt's raspi3-tutorial](https://github.com/bztsrc/raspi3-tutorial).

@@ -33,6 +33,11 @@ UART is assigned to the hypervisor's console. Connect your cable to the GPIO 14/
 * Trapping access of some system register
 * Trapping WFI/WFE instruction
 
+# Links
+* Armv8-A Virtualization - Learn the Architecture (https://developer.arm.com/architectures/learn-the-architecture/armv8-a-virtualization)
+* ARM Architecture Reference Manual ARMv8, for ARMv8-A architecture profile
+* 「ハイパーバイザの作り方」(http://syuu1228.github.io/howto_implement_hypervisor/)
+
 # License
 
 This project is licensed under the MIT license.

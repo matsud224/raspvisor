@@ -7,6 +7,7 @@
 #include "timer.h"
 #include "utils.h"
 #include "peripherals/mini_uart.h"
+#include "peripherals/pl011.h"
 #include "peripherals/timer.h"
 #include "peripherals/irq.h"
 
@@ -78,7 +79,9 @@ const struct bcm2837_state initial_state = {
 #define ADDR_IN_INTCTRL(a) ((a) >= IRQ_BASIC_PENDING && (a) <= DISABLE_BASIC_IRQS)
 #define ADDR_IN_AUX(a) ((a) >= AUX_IRQ && (a) <= AUX_MU_BAUD_REG)
 #define ADDR_IN_AUX_MU(a) ((a) >= AUX_MU_IO_REG && (a) <= AUX_MU_BAUD_REG)
+#define ADDR_IN_PL011(a) ((a) >= PL011_DR && (a) <= PL011_IDR)
 #define ADDR_IN_SYSTIMER(a) ((a) >= TIMER_CS && (a) <= TIMER_C3)
+#define ADDR_IN_MBOX(a) ((a) >= MBOX_READ && (a) <= MBOX_WRITE)
 
 void bcm2837_initialize(struct task_struct *tsk) {
   struct bcm2837_state *s = (struct bcm2837_state *)allocate_page();
@@ -303,6 +306,24 @@ void handle_aux_write(struct task_struct *tsk, unsigned long addr, unsigned long
   }
 }
 
+unsigned long handle_pl011_read(struct task_struct *tsk, unsigned long addr) {
+  struct bcm2837_state *s = (struct bcm2837_state *)tsk->board_data;
+
+  switch (addr) {
+  }
+  return 0;
+}
+
+void handle_pl011_write(struct task_struct *tsk, unsigned long addr, unsigned long val) {
+  struct bcm2837_state *s = (struct bcm2837_state *)tsk->board_data;
+
+  switch (addr) {
+  case PL011_DR:
+    enqueue_fifo(tsk->console.out_fifo, val & 0xff);
+    break;
+  }
+}
+
 #define TO_VIRTUAL_COUNT(s, p) (p - (s)->systimer.offset)
 #define TO_PHYSICAL_COUNT(s, v) (v + (s)->systimer.offset)
 
@@ -355,13 +376,37 @@ void handle_systimer_write(struct task_struct *tsk, unsigned long addr, unsigned
   }
 }
 
+unsigned long handle_mbox_read(struct task_struct *tsk, unsigned long addr) {
+  struct bcm2837_state *s = (struct bcm2837_state *)tsk->board_data;
+
+  switch (addr) {
+  }
+  return 0;
+}
+
+void handle_mbox_write(struct task_struct *tsk, unsigned long addr, unsigned long val) {
+  struct bcm2837_state *s = (struct bcm2837_state *)tsk->board_data;
+
+  switch (addr) {
+  case PL011_DR:
+    enqueue_fifo(tsk->console.out_fifo, val & 0xff);
+    break;
+  }
+}
+
 unsigned long bcm2837_mmio_read(struct task_struct *tsk, unsigned long addr) {
   if (ADDR_IN_INTCTRL(addr)) {
     return handle_intctrl_read(tsk, addr);
   } else if (ADDR_IN_AUX(addr)) {
     return handle_aux_read(tsk, addr);
+  } else if (ADDR_IN_PL011(addr)) {
+    return handle_pl011_read(tsk, addr);
   } else if (ADDR_IN_SYSTIMER(addr)) {
     return handle_systimer_read(tsk, addr);
+  } else if (ADDR_IN_MBOX(addr)) {
+    return handle_mbox_read(tsk, addr);
+  } else {
+    INFO("unknown mmio addr %x", addr);
   }
   return 0;
 }
@@ -371,8 +416,14 @@ void bcm2837_mmio_write(struct task_struct *tsk, unsigned long addr, unsigned lo
     handle_intctrl_write(tsk, addr, val);
   } else if (ADDR_IN_AUX(addr)) {
     handle_aux_write(tsk, addr, val);
+  } else if (ADDR_IN_PL011(addr)) {
+    handle_pl011_write(tsk, addr, val);
   } else if (ADDR_IN_SYSTIMER(addr)) {
     handle_systimer_write(tsk, addr, val);
+  } else if (ADDR_IN_MBOX(addr)) {
+    handle_mbox_write(tsk, addr, val);
+  } else {
+    INFO("unknown mmio addr %x, val %x", addr, val);
   }
 }
 

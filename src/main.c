@@ -65,7 +65,7 @@ void hypervisor_main() {
     .load_addr = 0x0,
     .entry_point = 0x0,
     .sp = 0x100000,
-    .filename = "echo.bin",
+    .filename = "ssp.bin",
   };
   if (create_task(raw_binary_loader, &bl_args4) < 0) {
     printf("error while starting task");

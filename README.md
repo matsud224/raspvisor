@@ -11,7 +11,7 @@ $ export SD_ROOTFS_DIR=/path/to/rootfspartiton/on/sdcard
 $ make install
 ```
 
-Programs runs on a hypervisor startup are hard-coded in `src/main.c`. In `example` directory, following programs are found.
+Programs runs on a hypervisor startup are hard-coded in `src/main.c`. I confirmed that programs in `example` directory can be run on this hypervisor. In `example` directory, following programs are found.
 * test_binary : issues hypervisor call once.
 * echo : Mini-UART echo back (based on [raspberry-pi-os/lesson02](https://github.com/s-matyukevich/raspberry-pi-os/tree/master/src/lesson02))
 * mini-os : a simple operating system which has a process scheduler, interrupt handling and virtual memory support (based on [raspberry-pi-os/lesson06](https://github.com/s-matyukevich/raspberry-pi-os/tree/master/src/lesson06))

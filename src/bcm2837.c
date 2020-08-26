@@ -137,13 +137,13 @@ unsigned long handle_intctrl_read(struct task_struct *tsk, unsigned long addr) {
         BIT(s->intctrl.irqs_1_enabled, 3) && (s->systimer.cs & 0x8);
       unsigned long aux_int =
         BIT(s->intctrl.irqs_1_enabled, 29) && handle_aux_read(tsk, AUX_IRQ);
-      return systimer_match1 | systimer_match3 | aux_int;
+      return (systimer_match1 << 1) | (systimer_match3 << 3) | (aux_int << 29);
     }
   case IRQ_PENDING_2:
     {
       unsigned long uart_int =
         BIT(s->intctrl.irqs_2_enabled, (57-32)) && handle_aux_read(tsk, PL011_MIS);
-      return uart_int;
+      return (uart_int << (57-32));
     }
   case FIQ_CONTROL:
     return s->intctrl.fiq_control;

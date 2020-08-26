@@ -4,11 +4,11 @@
 #include "board_rpi3.h"
 #include "mm.h"
 #include "fifo.h"
-#include "timer.h"
+#include "system_timer.h"
 #include "utils.h"
 #include "peripherals/mini_uart.h"
 #include "peripherals/pl011.h"
-#include "peripherals/timer.h"
+#include "peripherals/system_timer.h"
 #include "peripherals/irq.h"
 #include "peripherals/mbox.h"
 
@@ -98,14 +98,14 @@ const struct rpi3_state initial_state = {
 #define ADDR_IN_AUX(a) ((a) >= AUX_IRQ && (a) <= AUX_MU_BAUD_REG)
 #define ADDR_IN_AUX_MU(a) ((a) >= AUX_MU_IO_REG && (a) <= AUX_MU_BAUD_REG)
 #define ADDR_IN_PL011(a) ((a) >= PL011_DR && (a) <= PL011_TDR)
-#define ADDR_IN_SYSTIMER(a) ((a) >= TIMER_CS && (a) <= TIMER_C3)
+#define ADDR_IN_SYSTIMER(a) ((a) >= SYSTIMER_CS && (a) <= SYSTIMER_C3)
 #define ADDR_IN_MBOX(a) ((a) >= MBOX_READ && (a) <= MBOX_WRITE)
 
 void rpi3_initialize(struct task_struct *tsk) {
   struct rpi3_state *s = (struct rpi3_state *)allocate_page();
   *s = initial_state;
 
-  s->systimer.last_physical_count = get_physical_timer_count();
+  s->systimer.last_physical_count = get_physical_systimer_count();
   s->mbox.fifo = create_fifo();
 
   tsk->board_data = s;
@@ -418,19 +418,19 @@ void handle_pl011_write(struct task_struct *tsk, unsigned long addr, unsigned lo
 unsigned long handle_systimer_read(struct task_struct *tsk, unsigned long addr) {
   struct rpi3_state *s = (struct rpi3_state *)tsk->board_data;
   switch (addr) {
-  case TIMER_CS:
+  case SYSTIMER_CS:
     return s->systimer.cs;
-  case TIMER_CLO:
-    return TO_VIRTUAL_COUNT(s, get_physical_timer_count()) & 0xffffffff;
-  case TIMER_CHI:
-    return TO_VIRTUAL_COUNT(s, get_physical_timer_count()) >> 32;
-  case TIMER_C0:
+  case SYSTIMER_CLO:
+    return TO_VIRTUAL_COUNT(s, get_physical_systimer_count()) & 0xffffffff;
+  case SYSTIMER_CHI:
+    return TO_VIRTUAL_COUNT(s, get_physical_systimer_count()) >> 32;
+  case SYSTIMER_C0:
     return s->systimer.c0;
-  case TIMER_C1:
+  case SYSTIMER_C1:
     return s->systimer.c1;
-  case TIMER_C2:
+  case SYSTIMER_C2:
     return s->systimer.c2;
-  case TIMER_C3:
+  case SYSTIMER_C3:
     return s->systimer.c3;
   }
   return 0;
@@ -438,26 +438,26 @@ unsigned long handle_systimer_read(struct task_struct *tsk, unsigned long addr) 
 
 void handle_systimer_write(struct task_struct *tsk, unsigned long addr, unsigned long val) {
   struct rpi3_state *s = (struct rpi3_state *)tsk->board_data;
-  uint32_t current_clo = handle_systimer_read(tsk, TIMER_CLO);
+  uint32_t current_clo = handle_systimer_read(tsk, SYSTIMER_CLO);
   const uint32_t min_expire = 10000; // if this value is too short, CLO exceeds this value (timing problem)
 
   switch (addr) {
-  case TIMER_CS:
+  case SYSTIMER_CS:
     s->systimer.cs &= ~val;
     break;
-  case TIMER_C0:
+  case SYSTIMER_C0:
     s->systimer.c0 = val;
     s->systimer.c0_expire = MAX(val > current_clo ? val - current_clo : 1, min_expire);
     break;
-  case TIMER_C1:
+  case SYSTIMER_C1:
     s->systimer.c1 = val;
     s->systimer.c1_expire = MAX(val > current_clo ? val - current_clo : 1, min_expire);
     break;
-  case TIMER_C2:
+  case SYSTIMER_C2:
     s->systimer.c2 = val;
     s->systimer.c2_expire = MAX(val > current_clo ? val - current_clo : 1, min_expire);
     break;
-  case TIMER_C3:
+  case SYSTIMER_C3:
     s->systimer.c3 = val;
     s->systimer.c3_expire = MAX(val > current_clo ? val - current_clo : 1, min_expire);
     break;
@@ -544,7 +544,7 @@ void rpi3_entering_vm(struct task_struct *tsk) {
   struct rpi3_state *s = (struct rpi3_state *)tsk->board_data;
 
   // update systimer's offset
-  unsigned long current_physical_count = get_physical_timer_count();
+  unsigned long current_physical_count = get_physical_systimer_count();
   uint64_t lapse = current_physical_count - s->systimer.last_physical_count;
   s->systimer.offset += lapse;
 
@@ -567,7 +567,7 @@ void rpi3_entering_vm(struct task_struct *tsk) {
     upcoming = s->systimer.c3_expire;
 
   if (upcoming != 0xffffffff)
-    put32(TIMER_C3, get32(TIMER_CLO) + upcoming);
+    put32(SYSTIMER_C3, get32(SYSTIMER_CLO) + upcoming);
 
   int fired = (~s->systimer.cs) & matched;
   s->systimer.cs |= fired;
@@ -575,7 +575,7 @@ void rpi3_entering_vm(struct task_struct *tsk) {
 
 void rpi3_leaving_vm(struct task_struct *tsk) {
   struct rpi3_state *s = (struct rpi3_state *)tsk->board_data;
-  s->systimer.last_physical_count = get_physical_timer_count();
+  s->systimer.last_physical_count = get_physical_systimer_count();
 }
 
 int rpi3_is_irq_asserted(struct task_struct *tsk) {

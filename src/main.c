@@ -6,7 +6,7 @@
 #include "printf.h"
 #include "sched.h"
 #include "task.h"
-#include "timer.h"
+#include "system_timer.h"
 #include "utils.h"
 #include "mm.h"
 #include "sd.h"
@@ -21,7 +21,7 @@ void hypervisor_main() {
   init_task_console(current);
   init_initial_task();
   irq_vector_init();
-  timer_init();
+  systimer_init();
   disable_irq();
   enable_interrupt_controller();
 

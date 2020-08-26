@@ -289,3 +289,7 @@ translate_stage12:
   at s12e1r, x0
   mrs x0, par_el1
   ret
+
+.globl init_generic_timer
+init_genetic_timer:
+  ret

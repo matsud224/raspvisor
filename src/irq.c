@@ -1,7 +1,7 @@
 #include "peripherals/irq.h"
 #include "arm/sysregs.h"
 #include "entry.h"
-#include "timer.h"
+#include "system_timer.h"
 #include "utils.h"
 #include "sched.h"
 #include "debug.h"
@@ -40,11 +40,11 @@ void handle_irq(void) {
   unsigned int irq = get32(IRQ_PENDING_1);
   if (irq & SYSTEM_TIMER_IRQ_1_BIT) {
     irq &= ~SYSTEM_TIMER_IRQ_1_BIT;
-    handle_timer1_irq();
+    handle_systimer1_irq();
   }
   if (irq & SYSTEM_TIMER_IRQ_3_BIT) {
     irq &= ~SYSTEM_TIMER_IRQ_3_BIT;
-    handle_timer3_irq();
+    handle_systimer3_irq();
   }
   if (irq & AUX_IRQ_BIT) {
     irq &= ~AUX_IRQ_BIT;

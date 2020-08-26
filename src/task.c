@@ -4,7 +4,7 @@
 #include "sched.h"
 #include "utils.h"
 #include "debug.h"
-#include "bcm2837.h"
+#include "board_rpi3.h"
 #include "board.h"
 #include "fifo.h"
 
@@ -66,7 +66,7 @@ int create_task(loader_func_t loader, void *arg) {
   p->counter = p->priority;
   p->name = "VM";
 
-  p->board_ops = &bcm2837_board_ops;
+  p->board_ops = &rpi3_board_ops;
   if (HAVE_FUNC(p->board_ops, initialize))
     p->board_ops->initialize(p);
 

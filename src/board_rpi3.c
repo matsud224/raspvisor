@@ -1,7 +1,7 @@
 #include <inttypes.h>
 #include "board.h"
 #include "debug.h"
-#include "bcm2837.h"
+#include "board_rpi3.h"
 #include "mm.h"
 #include "fifo.h"
 #include "timer.h"
@@ -12,7 +12,7 @@
 #include "peripherals/irq.h"
 #include "peripherals/mbox.h"
 
-struct bcm2837_state {
+struct rpi3_state {
   struct {
     uint8_t irq_enabled[72]; // IRQ 0-64, ARM Timer, ARM Mailbox, ...
     uint8_t fiq_control;
@@ -61,7 +61,7 @@ struct bcm2837_state {
   } pl011;
 };
 
-const struct bcm2837_state initial_state = {
+const struct rpi3_state initial_state = {
   .intctrl = {
     .fiq_control        = 0x0,
     .irqs_1_enabled     = 0x0,
@@ -101,8 +101,8 @@ const struct bcm2837_state initial_state = {
 #define ADDR_IN_SYSTIMER(a) ((a) >= TIMER_CS && (a) <= TIMER_C3)
 #define ADDR_IN_MBOX(a) ((a) >= MBOX_READ && (a) <= MBOX_WRITE)
 
-void bcm2837_initialize(struct task_struct *tsk) {
-  struct bcm2837_state *s = (struct bcm2837_state *)allocate_page();
+void rpi3_initialize(struct task_struct *tsk) {
+  struct rpi3_state *s = (struct rpi3_state *)allocate_page();
   *s = initial_state;
 
   s->systimer.last_physical_count = get_physical_timer_count();
@@ -121,7 +121,7 @@ unsigned long handle_aux_read(struct task_struct *, unsigned long);
 
 unsigned long handle_intctrl_read(struct task_struct *tsk, unsigned long addr) {
 #define BIT(v, n) ((v) & (1 << (n)))
-  struct bcm2837_state *s = (struct bcm2837_state *)tsk->board_data;
+  struct rpi3_state *s = (struct rpi3_state *)tsk->board_data;
   switch (addr) {
   case IRQ_BASIC_PENDING:
     {
@@ -164,7 +164,7 @@ unsigned long handle_intctrl_read(struct task_struct *tsk, unsigned long addr) {
 }
 
 void handle_intctrl_write(struct task_struct *tsk, unsigned long addr, unsigned long val) {
-  struct bcm2837_state *s = (struct bcm2837_state *)tsk->board_data;
+  struct rpi3_state *s = (struct rpi3_state *)tsk->board_data;
   switch (addr) {
   case FIQ_CONTROL:
     s->intctrl.fiq_control = val;
@@ -193,7 +193,7 @@ void handle_intctrl_write(struct task_struct *tsk, unsigned long addr, unsigned 
 #define LCR_DLAB 0x80
 
 unsigned long handle_aux_read(struct task_struct *tsk, unsigned long addr) {
-  struct bcm2837_state *s = (struct bcm2837_state *)tsk->board_data;
+  struct rpi3_state *s = (struct rpi3_state *)tsk->board_data;
 
   if ((s->aux.aux_enables & 1) == 0 && ADDR_IN_AUX_MU(addr)) {
     return 0;
@@ -273,7 +273,7 @@ unsigned long handle_aux_read(struct task_struct *tsk, unsigned long addr) {
 }
 
 void handle_aux_write(struct task_struct *tsk, unsigned long addr, unsigned long val) {
-  struct bcm2837_state *s = (struct bcm2837_state *)tsk->board_data;
+  struct rpi3_state *s = (struct rpi3_state *)tsk->board_data;
 
   if ((s->aux.aux_enables & 1) == 0 && ADDR_IN_AUX_MU(addr)) {
     return;
@@ -325,7 +325,7 @@ void handle_aux_write(struct task_struct *tsk, unsigned long addr, unsigned long
 }
 
 unsigned long handle_pl011_read(struct task_struct *tsk, unsigned long addr) {
-  struct bcm2837_state *s = (struct bcm2837_state *)tsk->board_data;
+  struct rpi3_state *s = (struct rpi3_state *)tsk->board_data;
 
   switch (addr) {
   case PL011_DR:
@@ -377,7 +377,7 @@ unsigned long handle_pl011_read(struct task_struct *tsk, unsigned long addr) {
 }
 
 void handle_pl011_write(struct task_struct *tsk, unsigned long addr, unsigned long val) {
-  struct bcm2837_state *s = (struct bcm2837_state *)tsk->board_data;
+  struct rpi3_state *s = (struct rpi3_state *)tsk->board_data;
 
   switch (addr) {
   case PL011_DR:
@@ -416,7 +416,7 @@ void handle_pl011_write(struct task_struct *tsk, unsigned long addr, unsigned lo
 #define TO_PHYSICAL_COUNT(s, v) (v + (s)->systimer.offset)
 
 unsigned long handle_systimer_read(struct task_struct *tsk, unsigned long addr) {
-  struct bcm2837_state *s = (struct bcm2837_state *)tsk->board_data;
+  struct rpi3_state *s = (struct rpi3_state *)tsk->board_data;
   switch (addr) {
   case TIMER_CS:
     return s->systimer.cs;
@@ -437,7 +437,7 @@ unsigned long handle_systimer_read(struct task_struct *tsk, unsigned long addr) 
 }
 
 void handle_systimer_write(struct task_struct *tsk, unsigned long addr, unsigned long val) {
-  struct bcm2837_state *s = (struct bcm2837_state *)tsk->board_data;
+  struct rpi3_state *s = (struct rpi3_state *)tsk->board_data;
   uint32_t current_clo = handle_systimer_read(tsk, TIMER_CLO);
   const uint32_t min_expire = 10000; // if this value is too short, CLO exceeds this value (timing problem)
 
@@ -465,7 +465,7 @@ void handle_systimer_write(struct task_struct *tsk, unsigned long addr, unsigned
 }
 
 unsigned long handle_mbox_read(struct task_struct *tsk, unsigned long addr) {
-  struct bcm2837_state *s = (struct bcm2837_state *)tsk->board_data;
+  struct rpi3_state *s = (struct rpi3_state *)tsk->board_data;
 
   switch (addr) {
   case MBOX_READ:
@@ -488,7 +488,7 @@ void process_mbox_message(int channel, unsigned long msg) {
 }
 
 void handle_mbox_write(struct task_struct *tsk, unsigned long addr, unsigned long val) {
-  struct bcm2837_state *s = (struct bcm2837_state *)tsk->board_data;
+  struct rpi3_state *s = (struct rpi3_state *)tsk->board_data;
 
   switch (addr) {
   case MBOX_WRITE:
@@ -498,7 +498,7 @@ void handle_mbox_write(struct task_struct *tsk, unsigned long addr, unsigned lon
   }
 }
 
-unsigned long bcm2837_mmio_read(struct task_struct *tsk, unsigned long addr) {
+unsigned long rpi3_mmio_read(struct task_struct *tsk, unsigned long addr) {
   if (ADDR_IN_INTCTRL(addr)) {
     return handle_intctrl_read(tsk, addr);
   } else if (ADDR_IN_AUX(addr)) {
@@ -513,7 +513,7 @@ unsigned long bcm2837_mmio_read(struct task_struct *tsk, unsigned long addr) {
   return 0;
 }
 
-void bcm2837_mmio_write(struct task_struct *tsk, unsigned long addr, unsigned long val) {
+void rpi3_mmio_write(struct task_struct *tsk, unsigned long addr, unsigned long val) {
   if (ADDR_IN_INTCTRL(addr)) {
     handle_intctrl_write(tsk, addr, val);
   } else if (ADDR_IN_AUX(addr)) {
@@ -540,8 +540,8 @@ static int check_expiration(uint32_t *expire, uint64_t lapse) {
   }
 }
 
-void bcm2837_entering_vm(struct task_struct *tsk) {
-  struct bcm2837_state *s = (struct bcm2837_state *)tsk->board_data;
+void rpi3_entering_vm(struct task_struct *tsk) {
+  struct rpi3_state *s = (struct rpi3_state *)tsk->board_data;
 
   // update systimer's offset
   unsigned long current_physical_count = get_physical_timer_count();
@@ -573,17 +573,17 @@ void bcm2837_entering_vm(struct task_struct *tsk) {
   s->systimer.cs |= fired;
 }
 
-void bcm2837_leaving_vm(struct task_struct *tsk) {
-  struct bcm2837_state *s = (struct bcm2837_state *)tsk->board_data;
+void rpi3_leaving_vm(struct task_struct *tsk) {
+  struct rpi3_state *s = (struct rpi3_state *)tsk->board_data;
   s->systimer.last_physical_count = get_physical_timer_count();
 }
 
-int bcm2837_is_irq_asserted(struct task_struct *tsk) {
+int rpi3_is_irq_asserted(struct task_struct *tsk) {
   return handle_intctrl_read(tsk, IRQ_BASIC_PENDING) != 0;
 }
 
-int bcm2837_is_fiq_asserted(struct task_struct *tsk) {
-  struct bcm2837_state *s = (struct bcm2837_state *)tsk->board_data;
+int rpi3_is_fiq_asserted(struct task_struct *tsk) {
+  struct rpi3_state *s = (struct rpi3_state *)tsk->board_data;
 
   if ((s->intctrl.fiq_control & 0x80) == 0)
     return 0;
@@ -603,16 +603,16 @@ int bcm2837_is_fiq_asserted(struct task_struct *tsk) {
   return 0;
 }
 
-void bcm2837_debug(struct task_struct *tsk) {
+void rpi3_debug(struct task_struct *tsk) {
 }
 
-const struct board_ops bcm2837_board_ops = {
-  .initialize = bcm2837_initialize,
-  .mmio_read  = bcm2837_mmio_read,
-  .mmio_write = bcm2837_mmio_write,
-  .entering_vm = bcm2837_entering_vm,
-  .leaving_vm = bcm2837_leaving_vm,
-  .is_irq_asserted = bcm2837_is_irq_asserted,
-  .is_fiq_asserted = bcm2837_is_fiq_asserted,
-  .debug = bcm2837_debug,
+const struct board_ops rpi3_board_ops = {
+  .initialize = rpi3_initialize,
+  .mmio_read  = rpi3_mmio_read,
+  .mmio_write = rpi3_mmio_write,
+  .entering_vm = rpi3_entering_vm,
+  .leaving_vm = rpi3_leaving_vm,
+  .is_irq_asserted = rpi3_is_irq_asserted,
+  .is_fiq_asserted = rpi3_is_fiq_asserted,
+  .debug = rpi3_debug,
 };

@@ -278,8 +278,14 @@ clear_vserror:
   msr hcr_el2, x1
   ret
 
-.globl translate_el1
-translate_el1:
+.globl translate_stage1
+translate_stage1:
   at s1e1r, x0
+  mrs x0, par_el1
+  ret
+
+.globl translate_stage12
+translate_stage12:
+  at s12e1r, x0
   mrs x0, par_el1
   ret

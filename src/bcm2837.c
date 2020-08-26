@@ -10,6 +10,7 @@
 #include "peripherals/pl011.h"
 #include "peripherals/timer.h"
 #include "peripherals/irq.h"
+#include "peripherals/mbox.h"
 
 struct bcm2837_state {
   struct {
@@ -21,7 +22,6 @@ struct bcm2837_state {
   } intctrl;
 
   struct {
-    int      mu_rx_overrun;
     uint8_t  aux_enables;
     uint8_t  aux_mu_io;
     uint8_t  aux_mu_ier;
@@ -46,6 +46,19 @@ struct bcm2837_state {
     uint32_t c2_expire;
     uint32_t c3_expire;
   } systimer;
+
+  struct {
+    struct fifo *fifo;
+  } mbox;
+
+  struct {
+    uint32_t ibrd;
+    uint32_t fbrd;
+    uint32_t lcrh;
+    uint32_t cr;
+    uint32_t ifls;
+    uint32_t imsc;
+  } pl011;
 };
 
 const struct bcm2837_state initial_state = {
@@ -56,7 +69,6 @@ const struct bcm2837_state initial_state = {
     .basic_irqs_enabled = 0x0,
   },
   .aux = {
-    .mu_rx_overrun  = 0,
     .aux_enables    = 0x0,
     .aux_mu_io      = 0x0,
     .aux_mu_ier     = 0x0,
@@ -74,12 +86,18 @@ const struct bcm2837_state initial_state = {
     .c2  = 0x0,
     .c3  = 0x0,
   },
+  .pl011 = {
+    .ibrd = 0x0,
+    .fbrd = 0x0,
+    .lcrh = 0x0,
+    .cr   = 0x300,
+  },
 };
 
 #define ADDR_IN_INTCTRL(a) ((a) >= IRQ_BASIC_PENDING && (a) <= DISABLE_BASIC_IRQS)
 #define ADDR_IN_AUX(a) ((a) >= AUX_IRQ && (a) <= AUX_MU_BAUD_REG)
 #define ADDR_IN_AUX_MU(a) ((a) >= AUX_MU_IO_REG && (a) <= AUX_MU_BAUD_REG)
-#define ADDR_IN_PL011(a) ((a) >= PL011_DR && (a) <= PL011_IDR)
+#define ADDR_IN_PL011(a) ((a) >= PL011_DR && (a) <= PL011_TDR)
 #define ADDR_IN_SYSTIMER(a) ((a) >= TIMER_CS && (a) <= TIMER_C3)
 #define ADDR_IN_MBOX(a) ((a) >= MBOX_READ && (a) <= MBOX_WRITE)
 
@@ -88,6 +106,7 @@ void bcm2837_initialize(struct task_struct *tsk) {
   *s = initial_state;
 
   s->systimer.last_physical_count = get_physical_timer_count();
+  s->mbox.fifo = create_fifo();
 
   tsk->board_data = s;
 
@@ -116,13 +135,15 @@ unsigned long handle_intctrl_read(struct task_struct *tsk, unsigned long addr) {
         BIT(s->intctrl.irqs_1_enabled, 1) && (s->systimer.cs & 0x2);
       unsigned long systimer_match3 =
         BIT(s->intctrl.irqs_1_enabled, 3) && (s->systimer.cs & 0x8);
-      return (systimer_match1 << 1) | (systimer_match3 << 3);
+      unsigned long aux_int =
+        BIT(s->intctrl.irqs_1_enabled, 29) && handle_aux_read(tsk, AUX_IRQ);
+      return systimer_match1 | systimer_match3 | aux_int;
     }
   case IRQ_PENDING_2:
     {
       unsigned long uart_int =
-        BIT(s->intctrl.irqs_1_enabled, (57-32)) && (handle_aux_read(tsk, AUX_IRQ) & 0x1);
-      return (uart_int << (57-32));
+        BIT(s->intctrl.irqs_2_enabled, (57-32)) && handle_aux_read(tsk, PL011_MIS);
+      return uart_int;
     }
   case FIQ_CONTROL:
     return s->intctrl.fiq_control;
@@ -218,11 +239,9 @@ unsigned long handle_aux_read(struct task_struct *tsk, unsigned long addr) {
   case AUX_MU_LSR_REG:
     {
       int dready = !is_empty_fifo(tsk->console.in_fifo);
-      int rx_overrun = s->aux.mu_rx_overrun;
       int tx_empty = !is_full_fifo(tsk->console.out_fifo);
       int tx_idle = is_empty_fifo(tsk->console.out_fifo);
-      s->aux.mu_rx_overrun = 0;
-      return dready | (rx_overrun << 1) | (tx_empty << 5) | (tx_idle << 6);
+      return dready | (tx_empty << 5) | (tx_idle << 6);
     }
   case AUX_MU_MSR_REG:
     return s->aux.aux_mu_msr;
@@ -237,15 +256,14 @@ unsigned long handle_aux_read(struct task_struct *tsk, unsigned long addr) {
       int space_avail = !is_full_fifo(tsk->console.out_fifo);
       int rx_idle = is_empty_fifo(tsk->console.in_fifo);
       int tx_idle = !is_empty_fifo(tsk->console.out_fifo);
-      int rx_overrun = s->aux.mu_rx_overrun;
       int tx_full = !space_avail;
       int tx_empty = is_empty_fifo(tsk->console.out_fifo);
       int tx_done = rx_idle & tx_empty;
       int rx_fifo_level = MIN(used_of_fifo(tsk->console.in_fifo), 8);
       int tx_fifo_level = MIN(used_of_fifo(tsk->console.out_fifo), 8);
       return sym_avail | (space_avail << 1) | (rx_idle << 2) |
-        (tx_idle << 3) | (rx_overrun << 4) | (tx_full << 5) |
-        (tx_empty << 8) | (tx_done << 9) | (rx_fifo_level << 16) |
+        (tx_idle << 3) | (tx_full << 5) | (tx_empty << 8) |
+        (tx_done << 9) | (rx_fifo_level << 16) |
         (tx_fifo_level << 24);
     }
   case AUX_MU_BAUD_REG:
@@ -310,6 +328,50 @@ unsigned long handle_pl011_read(struct task_struct *tsk, unsigned long addr) {
   struct bcm2837_state *s = (struct bcm2837_state *)tsk->board_data;
 
   switch (addr) {
+  case PL011_DR:
+    {
+      if ((handle_pl011_read(tsk, PL011_CR) & 0x1) &&
+          (handle_pl011_read(tsk, PL011_CR) & 0x200)) {
+        unsigned long data;
+        dequeue_fifo(tsk->console.in_fifo, &data);
+        return data & 0xff;
+      } else {
+        return 0;
+      }
+    }
+  case PL011_FR:
+    {
+      int busy = !is_empty_fifo(tsk->console.out_fifo);
+      int rxfe = is_empty_fifo(tsk->console.in_fifo);
+      int txff = is_full_fifo(tsk->console.out_fifo);
+      int rxff = is_full_fifo(tsk->console.in_fifo);
+      int txfe = is_empty_fifo(tsk->console.out_fifo);
+      return ((busy << 3) | (rxfe << 4) | (txff << 5) |
+              (rxff << 6) | (txfe << 7));
+    }
+  case PL011_IBRD:
+    return s->pl011.ibrd;
+  case PL011_FBRD:
+    return s->pl011.fbrd;
+  case PL011_LCRH:
+    return s->pl011.lcrh;
+  case PL011_CR:
+    return s->pl011.cr;
+  case PL011_IFLS:
+    return s->pl011.ifls;
+  case PL011_IMSC:
+    return s->pl011.imsc;
+  case PL011_RIS:
+    {
+      int uart_en = handle_pl011_read(tsk, PL011_CR) & 0x1;
+      int tx_en = handle_pl011_read(tsk, PL011_CR) & 0x100;
+      int rx_en = handle_pl011_read(tsk, PL011_CR) & 0x200;
+      int tx_int = uart_en && tx_en && is_empty_fifo(tsk->console.out_fifo);
+      int rx_int = uart_en && rx_en && !is_empty_fifo(tsk->console.in_fifo);
+      return (rx_int << 4) | (tx_int << 5);
+    }
+  case PL011_MIS:
+    return handle_pl011_read(tsk, PL011_RIS) & ~s->pl011.imsc;
   }
   return 0;
 }
@@ -319,7 +381,33 @@ void handle_pl011_write(struct task_struct *tsk, unsigned long addr, unsigned lo
 
   switch (addr) {
   case PL011_DR:
-    enqueue_fifo(tsk->console.out_fifo, val & 0xff);
+    if ((handle_pl011_read(tsk, PL011_CR) & 0x1) &&
+        (handle_pl011_read(tsk, PL011_CR) & 0x100))
+      enqueue_fifo(tsk->console.out_fifo, val & 0xff);
+    break;
+  case PL011_IBRD:
+    s->pl011.ibrd = val;
+    break;
+  case PL011_FBRD:
+    s->pl011.fbrd = val;
+    break;
+  case PL011_LCRH:
+    s->pl011.lcrh = val;
+    break;
+  case PL011_CR:
+    s->pl011.cr = val;
+    break;
+  case PL011_IFLS:
+    s->pl011.ifls = val;
+    break;
+  case PL011_IMSC:
+    s->pl011.imsc = val;
+    break;
+  case PL011_ICR:
+    if (val & 0x10)
+      clear_fifo(tsk->console.in_fifo);
+    if (val & 0x20)
+      clear_fifo(tsk->console.out_fifo);
     break;
   }
 }
@@ -380,16 +468,32 @@ unsigned long handle_mbox_read(struct task_struct *tsk, unsigned long addr) {
   struct bcm2837_state *s = (struct bcm2837_state *)tsk->board_data;
 
   switch (addr) {
+  case MBOX_READ:
+    {
+      unsigned long val = 0;
+      dequeue_fifo(s->mbox.fifo, &val);
+      return val;
+    }
+  case MBOX_STATUS:
+    return (is_empty_fifo(s->mbox.fifo) << MBOX_EMPTY_BIT) |
+           (is_full_fifo(s->mbox.fifo) << MBOX_FULL_BIT);
   }
   return 0;
+}
+
+void process_mbox_message(int channel, unsigned long msg) {
+  struct mbox_message_header *msghdr = (struct mbox_message_header *)(translate_stage12(msg));
+  // TODO
+  msghdr->code = MBOX_RESPONSE_OK;
 }
 
 void handle_mbox_write(struct task_struct *tsk, unsigned long addr, unsigned long val) {
   struct bcm2837_state *s = (struct bcm2837_state *)tsk->board_data;
 
   switch (addr) {
-  case PL011_DR:
-    enqueue_fifo(tsk->console.out_fifo, val & 0xff);
+  case MBOX_WRITE:
+    process_mbox_message(val & 0xf, val & ~0xf);
+    enqueue_fifo(s->mbox.fifo, val);
     break;
   }
 }

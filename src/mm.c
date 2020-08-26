@@ -100,7 +100,7 @@ void map_stage2_page(struct task_struct *task, vaddr_t va,
 }
 
 paddr_t get_ipa(vaddr_t va) {
-  paddr_t ipa = translate_el1(va);
+  paddr_t ipa = translate_stage1(va);
   ipa &= 0xFFFFFFFFF000;
   ipa |= va & 0xFFF;
   return ipa;

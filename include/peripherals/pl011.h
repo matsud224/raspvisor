@@ -19,4 +19,4 @@
 #define PL011_ITCR    (PBASE + 0x201080)
 #define PL011_ITIP    (PBASE + 0x201084)
 #define PL011_ITOP    (PBASE + 0x201088)
-#define PL011_IDR     (PBASE + 0x20108c)
+#define PL011_TDR     (PBASE + 0x20108c)

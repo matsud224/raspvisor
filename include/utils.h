@@ -24,7 +24,8 @@ extern void assert_vserror(void);
 extern void clear_vfiq(void);
 extern void clear_virq(void);
 extern void clear_vserror(void);
-extern unsigned long translate_el1(unsigned long);
+extern unsigned long translate_stage1(unsigned long);
+extern unsigned long translate_stage12(unsigned long);
 
 int abs(int);
 char *strncpy(char *, const char *, size_t);
@@ -44,4 +45,3 @@ int isdigit(int);
 int isspace(int);
 int toupper(int);
 int tolower(int);
-

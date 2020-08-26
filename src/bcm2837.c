@@ -509,8 +509,6 @@ unsigned long bcm2837_mmio_read(struct task_struct *tsk, unsigned long addr) {
     return handle_systimer_read(tsk, addr);
   } else if (ADDR_IN_MBOX(addr)) {
     return handle_mbox_read(tsk, addr);
-  } else {
-    INFO("unknown mmio addr %x", addr);
   }
   return 0;
 }
@@ -526,8 +524,6 @@ void bcm2837_mmio_write(struct task_struct *tsk, unsigned long addr, unsigned lo
     handle_systimer_write(tsk, addr, val);
   } else if (ADDR_IN_MBOX(addr)) {
     handle_mbox_write(tsk, addr, val);
-  } else {
-    INFO("unknown mmio addr %x, val %x", addr, val);
   }
 }
 

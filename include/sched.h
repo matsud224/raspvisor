@@ -11,8 +11,8 @@
 #define FIRST_TASK task[0]
 #define LAST_TASK task[NR_TASKS - 1]
 
-#define TASK_RUNNING 0
-#define TASK_ZOMBIE 1
+#define TASK_RUNNING   0
+#define TASK_ZOMBIE    1
 
 struct board_ops;
 
@@ -140,7 +140,6 @@ struct task_struct {
   long state;
   long counter;
   long priority;
-  long preempt_count;
   long pid; // used as VMID
   unsigned long flags;
   const char *name;
@@ -155,8 +154,6 @@ struct task_struct {
 extern void sched_init(void);
 extern void schedule(void);
 extern void timer_tick(void);
-extern void preempt_disable(void);
-extern void preempt_enable(void);
 extern void set_cpu_virtual_interrupt(struct task_struct *);
 void set_cpu_sysregs(struct task_struct *);
 extern void switch_to(struct task_struct *);
@@ -167,7 +164,7 @@ extern void show_task_list(void);
 #define INIT_TASK  \
   {  \
     /* cpu_context */ {0}, \
-    /* state etc */    0, 0, 1, 0, 0, 0, "", 0, 0,  \
+    /* state etc */    0, 0, 1, 0, 0, "", 0, 0,  \
     /* mm */          {0},  \
     /* cpu_sysregs */ {0},  \
     /* stat */        {0},  \

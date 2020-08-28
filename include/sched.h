@@ -151,15 +151,15 @@ struct task_struct {
   struct task_console console;
 };
 
-extern void sched_init(void);
-extern void schedule(void);
-extern void timer_tick(void);
-extern void set_cpu_virtual_interrupt(struct task_struct *);
+void sched_init(void);
+void schedule(void);
+void timer_tick(void);
+void set_cpu_virtual_interrupt(struct task_struct *);
 void set_cpu_sysregs(struct task_struct *);
-extern void switch_to(struct task_struct *);
-extern void cpu_switch_to(struct task_struct *, struct task_struct *);
-extern void exit_task(void);
-extern void show_task_list(void);
+void switch_to(struct task_struct *);
+void cpu_switch_to(struct task_struct *, struct task_struct *);
+void exit_task(void);
+void show_task_list(void);
 
 #define INIT_TASK  \
   {  \

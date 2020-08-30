@@ -21,9 +21,11 @@ int load_file_to_memory(struct task_struct *tsk, const char *name, unsigned long
   }
 
   int remain = fat32_file_size(&file);
+  int total = remain;
   int offset = 0;
   unsigned long current_va = va & PAGE_MASK;
 
+  printf("  0%%");
   while (remain > 0) {
     uint8_t *buf = allocate_task_page(tsk, current_va);
     int readsz = MIN(PAGE_SIZE, remain);
@@ -37,6 +39,8 @@ int load_file_to_memory(struct task_struct *tsk, const char *name, unsigned long
     remain -= readsz;
     offset += readsz;
     current_va += PAGE_SIZE;
+
+    printf("\b\b\b\b%3d%%", (total - remain) * 100 / total);
   }
 
   tsk->name = name;

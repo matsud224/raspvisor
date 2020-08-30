@@ -30,6 +30,7 @@ void hypervisor_main() {
   if (sd_init() < 0)
     PANIC("sd_init() failed.");
 
+  /*
   struct raw_binary_loader_args bl_args1 = {
     .load_addr = 0x0,
     .entry_point = 0x0,
@@ -62,6 +63,7 @@ void hypervisor_main() {
     printf("error while starting task #2");
     return;
   }
+  */
 
   struct linux_loader_args ll_args4 = {
     .kernel_image = "linux-5.8.5.bin",

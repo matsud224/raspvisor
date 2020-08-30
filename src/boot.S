@@ -78,10 +78,10 @@ el2_entry:
 
   br  x2
 
-  .macro  create_table_entry, tbl, virt, shift, tmp1, tmp2
+  .macro  create_table_entry, tbl, nexttbl, virt, shift, tmp1, tmp2
   lsr \tmp1, \virt, #\shift
   and \tmp1, \tmp1, #PTRS_PER_TABLE - 1     // table index
-  add \tmp2, \tbl, #PAGE_SIZE
+  mov \tmp2, \nexttbl
   orr \tmp2, \tmp2, #MM_TYPE_PAGE_TABLE
   str \tmp2, [\tbl, \tmp1, lsl #3]
   .endm
@@ -127,13 +127,13 @@ __create_page_tables:
   bl  memzero
 
   mov x1, #VA_START
-  create_table_entry x9, x1, PGD_SHIFT, x2, x3
+  create_table_entry x9, x10, x1, PGD_SHIFT, x2, x3
 
   mov x1, #VA_START
-  create_table_entry x10, x1, PUD_SHIFT, x2, x3
+  create_table_entry x10, x11, x1, PUD_SHIFT, x2, x3
 
   ldr x1, =(VA_START + 0x40000000)
-  create_table_entry x10, x1, PUD_SHIFT, x2, x3
+  create_table_entry x10, x12, x1, PUD_SHIFT, x2, x3
 
   /* Mapping kernel and init stack*/
   mov x1, xzr // start mapping from physical offset 0

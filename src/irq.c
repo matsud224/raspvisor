@@ -39,21 +39,19 @@ void show_invalid_entry_message(int type, unsigned long esr,
 
 void handle_irq(void) {
   unsigned int core_irq_src = get32(CORE0_IRQ_SOURCE);
-  unsigned int gpu_irq_src = get32(IRQ_PENDING_1);
+  unsigned int irq_src = get32(IRQ_PENDING_1);
 
   if (core_irq_src & INT_SRC_TIMER) {
     handle_generic_timer_irq();
   }
 
-  if (core_irq_src & INT_SRC_GPU) {
-    if (gpu_irq_src & SYSTEM_TIMER_IRQ_1_BIT) {
-      handle_systimer1_irq();
-    }
-    if (gpu_irq_src & SYSTEM_TIMER_IRQ_3_BIT) {
-      handle_systimer3_irq();
-    }
-    if (gpu_irq_src & AUX_IRQ_BIT) {
-      handle_uart_irq();
-    }
+  if (irq_src & SYSTEM_TIMER_IRQ_1_BIT) {
+    handle_systimer1_irq();
+  }
+  if (irq_src & SYSTEM_TIMER_IRQ_3_BIT) {
+    handle_systimer3_irq();
+  }
+  if (irq_src & AUX_IRQ_BIT) {
+    handle_uart_irq();
   }
 }

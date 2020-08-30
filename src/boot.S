@@ -2,6 +2,7 @@
 #include "arm/sysregs.h"
 #include "mm.h"
 #include "peripherals/base.h"
+#include "peripherals/irq.h"
 
 .section ".text.boot"
 
@@ -16,6 +17,12 @@ proc_hang:
   b proc_hang
 
 master:
+  // Init generic timer
+  ldr x0, =GENERIC_TIMER_FREQ
+  msr cntfrq_el0, x0
+  ldr x0, =CNTHCTL_VALUE
+  msr cnthctl_el2, x0
+
   // Initial EL is 3
   // Change EL from 3 to 2
   ldr x0, =SCTLR_VALUE_MMU_DISABLED
@@ -71,18 +78,12 @@ el2_entry:
 
   br  x2
 
-  .macro  create_pgd_entry, tbl, virt, tmp1, tmp2
-  create_table_entry \tbl, \virt, PGD_SHIFT, \tmp1, \tmp2
-  create_table_entry \tbl, \virt, PUD_SHIFT, \tmp1, \tmp2
-  .endm
-
   .macro  create_table_entry, tbl, virt, shift, tmp1, tmp2
   lsr \tmp1, \virt, #\shift
   and \tmp1, \tmp1, #PTRS_PER_TABLE - 1     // table index
   add \tmp2, \tbl, #PAGE_SIZE
   orr \tmp2, \tmp2, #MM_TYPE_PAGE_TABLE
   str \tmp2, [\tbl, \tmp1, lsl #3]
-  add \tbl, \tbl, #PAGE_SIZE          // next level table page
   .endm
 
   .macro  create_block_map, tbl, phys, start, end, flags, tmp1
@@ -103,25 +104,54 @@ el2_entry:
 __create_page_tables:
   mov x29, x30            // save return address
 
-  adrp  x0, pg_dir
+  // 4KB granule
+  adrp  x9, pg_dir       // level-0 table
+  add   x10, x9, 0x1000  // level-1 table
+  add   x11, x9, 0x2000  // level-2 table (0x00000000 - 0x40000000)
+  add   x12, x9, 0x3000  // level-2 table (0x40000000 - 0x80000000)
+
+  mov x0, x9
   mov x1, #PG_DIR_SIZE
   bl  memzero
 
-  adrp  x0, pg_dir
+  mov x0, x10
+  mov x1, #PG_DIR_SIZE
+  bl  memzero
+
+  mov x0, x11
+  mov x1, #PG_DIR_SIZE
+  bl  memzero
+
+  mov x0, x12
+  mov x1, #PG_DIR_SIZE
+  bl  memzero
+
   mov x1, #VA_START
-  create_pgd_entry x0, x1, x2, x3
+  create_table_entry x9, x1, PGD_SHIFT, x2, x3
+
+  mov x1, #VA_START
+  create_table_entry x10, x1, PUD_SHIFT, x2, x3
+
+  ldr x1, =(VA_START + 0x40000000)
+  create_table_entry x10, x1, PUD_SHIFT, x2, x3
 
   /* Mapping kernel and init stack*/
-  mov   x1, xzr             // start mapping from physical offset 0
-  mov   x2, #VA_START           // first virtual address
-  ldr x3, =(VA_START + DEVICE_BASE - SECTION_SIZE)    // last virtual address
-  create_block_map x0, x1, x2, x3, MMU_FLAGS, x4
+  mov x1, xzr // start mapping from physical offset 0
+  mov x2, #VA_START // first virtual address
+  ldr x3, =(VA_START + DEVICE_BASE - SECTION_SIZE) // last virtual address
+  create_block_map x11, x1, x2, x3, MMU_FLAGS, x4
 
   /* Mapping device memory*/
-  mov   x1, #DEVICE_BASE          // start mapping from device base address
-  ldr   x2, =(VA_START + DEVICE_BASE)       // first virtual address
-  ldr x3, =(VA_START + PHYS_MEMORY_SIZE - SECTION_SIZE) // last virtual address
-  create_block_map x0, x1, x2, x3, MMU_DEVICE_FLAGS, x4
+  mov x1, #DEVICE_BASE
+  ldr x2, =(VA_START + DEVICE_BASE)
+  ldr x3, =(VA_START + PHYS_MEMORY_SIZE - SECTION_SIZE)
+  create_block_map x11, x1, x2, x3, MMU_DEVICE_FLAGS, x4
+
+  /* Mapping device memory (over 1GB)*/
+  mov x1, #CORE_IRQREG_START
+  ldr x2, =(VA_START + CORE_IRQREG_START)
+  ldr x3, =(VA_START + CORE_IRQREG_START)
+  create_block_map x12, x1, x2, x3, MMU_DEVICE_FLAGS, x4
 
   mov x30, x29            // restore return address
   ret

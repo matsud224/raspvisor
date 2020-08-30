@@ -18,3 +18,10 @@
 #define SYSTEM_TIMER_IRQ_2_BIT (1 << 2)
 #define SYSTEM_TIMER_IRQ_3_BIT (1 << 3)
 #define AUX_IRQ_BIT            (1 << 29)
+#define GENERIC_TIMER_IRQ_BIT  (1 << 29)
+
+#define CORE_IRQREG_START    0x40000000
+#define CORE0_TIMER_IRQCNTL  0x40000040
+#define CORE0_IRQ_SOURCE     0x40000060
+#define INT_SRC_TIMER        0x0000000f
+#define INT_SRC_GPU          0x00000100

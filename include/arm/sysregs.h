@@ -76,3 +76,13 @@
 
 #define VTCR_VALUE                                                             \
   (VTCR_NSA | VTCR_NSW | VTCR_VS | VTCR_PS | VTCR_TG0 | VTCR_SH0 | VTCR_ORGN0 | VTCR_IRGN0 | VTCR_SL0 | VTCR_T0SZ)
+
+
+// ***************************************
+// Generic Timer
+// ***************************************
+#define GENERIC_TIMER_FREQ  1000000  // 1MHz
+
+#define CNTHCTL_EL1PCTEN  (1 << 0)
+#define CNTHCTL_EL1PCEN   (1 << 1)
+#define CNTHCTL_VALUE     (CNTHCTL_EL1PCTEN | CNTHCTL_EL1PCEN)

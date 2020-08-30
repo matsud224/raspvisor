@@ -63,13 +63,12 @@ void hypervisor_main() {
     return;
   }
 
-  struct raw_binary_loader_args bl_args4 = {
-    .load_addr = 0x0,
-    .entry_point = 0x0,
-    .sp = 0x100000,
-    .filename = "ssp.bin",
+  struct linux_loader_args ll_args4 = {
+    .kernel_image = "linux-5.8.5.bin",
+    .device_tree  = "bcm2837-rpi-3-b.dtb",
+    .initramfs    = NULL,
   };
-  if (create_task(raw_binary_loader, &bl_args4) < 0) {
+  if (create_task(linux_loader, &ll_args4) < 0) {
     printf("error while starting task");
     return;
   }

@@ -13,7 +13,9 @@
 #define PSR_MODE_EL3t 0x0000000c
 #define PSR_MODE_EL3h 0x0000000d
 
-typedef int (*loader_func_t)(void *, unsigned long *, unsigned long *);
+struct pt_regs;
+
+typedef int (*loader_func_t)(void *, struct pt_regs *);
 
 struct pt_regs *task_pt_regs(struct task_struct *);
 int create_task(loader_func_t, void *);

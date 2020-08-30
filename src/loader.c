@@ -45,15 +45,46 @@ int load_file_to_memory(struct task_struct *tsk, const char *name, unsigned long
 }
 
 
-int raw_binary_loader (void *arg, unsigned long *pc,
-    unsigned long *sp) {
+int raw_binary_loader (void *arg, struct pt_regs *regs) {
   struct raw_binary_loader_args *loader_args = arg;
   if (load_file_to_memory(current,
         loader_args->filename, loader_args->load_addr) < 0)
     return -1;
 
-  *pc = loader_args->entry_point;
-  *sp = loader_args->sp;
+  regs->pc = loader_args->entry_point;
+  regs->sp = loader_args->sp;
+
+  return 0;
+}
+
+int linux_loader (void *arg, struct pt_regs *regs) {
+  struct linux_loader_args *loader_args = arg;
+
+  // FIXME
+  unsigned long kernel_load_addr = 0x0;
+  unsigned long dtb_load_addr = 0x30000000;
+  //unsigned long initramfs_load_addr = 0x0;
+
+  if (load_file_to_memory(current,
+        loader_args->kernel_image, kernel_load_addr) < 0)
+    return -1;
+
+  if (load_file_to_memory(current,
+        loader_args->device_tree, dtb_load_addr) < 0)
+    return -1;
+
+  /*
+  if (loader_args->initramfs != NULL &&
+      load_file_to_memory(current,
+        loader_args->initramfs, initramfs_load_addr) < 0)
+    return -1;
+  */
+
+  regs->pc = kernel_load_addr;
+  regs->regs[0] = dtb_load_addr;
+  regs->regs[1] = 0;
+  regs->regs[2] = 0;
+  regs->regs[3] = 0;
 
   return 0;
 }

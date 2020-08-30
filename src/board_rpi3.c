@@ -59,11 +59,6 @@ struct rpi3_state {
     uint32_t ifls;
     uint32_t imsc;
   } pl011;
-
-  struct {
-    uint32_t prescaler,
-    uint32_t core0_timer_irqcntl,
-  } core_timer;
 };
 
 const struct rpi3_state initial_state = {

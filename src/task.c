@@ -20,7 +20,7 @@ static void prepare_task(loader_func_t loader, void *arg) {
   regs->pstate = PSR_MODE_EL1h;
   regs->pstate |= (0xf << 6); // interrupt mask
 
-  if (loader(arg, &regs->pc, &regs->sp) < 0) {
+  if (loader(arg, regs) < 0) {
     PANIC("failed to load");
   }
 

@@ -63,7 +63,6 @@ void hypervisor_main() {
     return;
   }
 
-  /*
   struct raw_binary_loader_args bl_args4 = {
     .load_addr = 0x0,
     .entry_point = 0x0,
@@ -74,7 +73,6 @@ void hypervisor_main() {
     printf("error while starting task");
     return;
   }
-  */
 
   struct raw_binary_loader_args bl_args5 = {
     .load_addr = 0x0,

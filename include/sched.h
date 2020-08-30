@@ -65,6 +65,15 @@ struct cpu_sysregs {
   unsigned long tpidrro_el0;
   unsigned long vbar_el1;
 
+  // system timer
+  unsigned long cntkctl_el1;
+  unsigned long cntp_ctl_el0;
+  unsigned long cntp_cval_el0;
+  unsigned long cntp_tval_el0;
+  unsigned long cntv_ctl_el0;
+  unsigned long cntv_cval_el0;
+  unsigned long cntv_tval_el0;
+
   // trapped by TACR
   unsigned long actlr_el1; // rw
 
@@ -104,15 +113,6 @@ struct cpu_sysregs {
   // trapped by TID1
   unsigned long aidr_el1; // ro
   unsigned long revidr_el1; // ro
-
-  // system timer
-  unsigned long cntkctl_el1;
-  unsigned long cntp_ctl_el0;
-  unsigned long cntp_cval_el0;
-  unsigned long cntp_tval_el0;
-  unsigned long cntv_ctl_el0;
-  unsigned long cntv_cval_el0;
-  unsigned long cntv_tval_el0;
 };
 
 

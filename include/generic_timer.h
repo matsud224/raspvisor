@@ -4,6 +4,7 @@
 
 void generic_timer_init(void);
 void handle_generic_timer_irq(void);
+int is_generic_timer_interrupt_asserted(struct task_struct *);
 
 #define CNTHP_CTL_ENABLE  (1 << 0)
 #define CNTHP_CTL_IMASK   (1 << 1)

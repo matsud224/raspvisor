@@ -59,6 +59,11 @@ struct rpi3_state {
     uint32_t ifls;
     uint32_t imsc;
   } pl011;
+
+  struct {
+    uint32_t prescaler,
+    uint32_t core0_timer_irqcntl,
+  } core_timer;
 };
 
 const struct rpi3_state initial_state = {
@@ -115,6 +120,7 @@ void rpi3_initialize(struct task_struct *tsk) {
   for (; begin < end; begin += PAGE_SIZE) {
     set_task_page_notaccessable(tsk, begin);
   }
+  set_task_page_notaccessable(tsk, CORE_IRQREG_START);
 }
 
 unsigned long handle_aux_read(struct task_struct *, unsigned long);

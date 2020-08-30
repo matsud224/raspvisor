@@ -5,6 +5,7 @@
 #include "debug.h"
 #include "board.h"
 #include "task.h"
+#include "generic_timer.h"
 
 static struct task_struct init_task = INIT_TASK;
 struct task_struct *current = &(init_task);
@@ -46,17 +47,30 @@ void schedule(void) {
 }
 
 void set_cpu_virtual_interrupt(struct task_struct *tsk) {
+  int is_irq_asserted = 0;
+  int is_fiq_asserted = 0;
+
   if (HAVE_FUNC(tsk->board_ops, is_irq_asserted) &&
     tsk->board_ops->is_irq_asserted(tsk))
+    is_irq_asserted = 1;
+
+  if (is_generic_timer_interrupt_asserted(tsk))
+    is_irq_asserted = 1;
+
+  if (HAVE_FUNC(tsk->board_ops, is_fiq_asserted) &&
+    tsk->board_ops->is_fiq_asserted(tsk))
+    is_fiq_asserted = 1;
+
+  if (is_irq_asserted)
     assert_virq();
   else
     clear_virq();
 
-  if (HAVE_FUNC(tsk->board_ops, is_fiq_asserted) &&
-    tsk->board_ops->is_fiq_asserted(tsk))
+  if (is_fiq_asserted)
     assert_vfiq();
   else
     clear_vfiq();
+
 }
 
 void switch_to(struct task_struct *next) {

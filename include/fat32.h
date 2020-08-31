@@ -49,6 +49,9 @@ struct fat32_file {
   uint8_t attr;
   uint32_t size;
   uint32_t cluster;
+  // to speedup
+  uint32_t last_cluster;
+  uint32_t last_offset;
 };
 
 struct fat32_fs {

@@ -64,6 +64,39 @@ struct fat32_lfnent {
 #define RESERVED_CLUSTER 1
 #define BAD_CLUSTER 0x0FFFFFF7
 
+
+#define CACHE_SIZE 1024
+
+struct {
+  int used;
+  unsigned int lba;
+  uint8_t *buf;
+} cache[CACHE_SIZE];
+
+static uint8_t *alloc_and_readblock(unsigned int);
+
+static uint8_t *readblock_from_cache(unsigned int lba) {
+  for (int i=0; i<CACHE_SIZE; i++)
+    if (cache[i].used && cache[i].lba == lba) {
+      return cache[i].buf;
+    }
+
+  int i,vacant = 0;
+  for (i=0; i<CACHE_SIZE; i++)
+    if (!cache[i].used) {
+      vacant = i;
+      break;
+    }
+
+  if (cache[vacant].used)
+    deallocate_page(cache[vacant].buf);
+  cache[vacant].used = 1;
+  cache[vacant].lba = lba;
+  cache[vacant].buf = alloc_and_readblock(lba);
+
+  return cache[vacant].buf;
+}
+
 static uint8_t *alloc_and_readblock(unsigned int lba) {
   uint8_t *buf = (uint8_t *)allocate_page();
   if (sd_readblock(lba, buf, 1) < 0)
@@ -90,6 +123,8 @@ static void fat32_file_init(struct fat32_fs *fat32, struct fat32_file *fatfile,
   fatfile->attr = attr;
   fatfile->size = size;
   fatfile->cluster = cluster;
+  fatfile->last_cluster = 0;
+  fatfile->last_offset = 0xffffffff;
 }
 
 int fat32_get_handle(struct fat32_fs *fat32) {
@@ -137,9 +172,8 @@ static uint32_t fatent_read(struct fat32_fs *fat32, uint32_t index) {
   struct fat32_boot *boot = &(fat32->boot);
   uint32_t sector = fat32->fatstart + (index * 4 / boot->BPB_BytsPerSec);
   uint32_t offset = index * 4 % boot->BPB_BytsPerSec;
-  uint8_t *bbuf = alloc_and_readblock(sector + fat32->volume_first);
+  uint8_t *bbuf = readblock_from_cache(sector + fat32->volume_first);
   uint32_t entry = *((uint32_t *)(bbuf + offset)) & 0x0fffffff;
-  deallocate_page(bbuf);
   return entry;
 }
 
@@ -155,9 +189,7 @@ static uint32_t walk_cluster_chain(struct fat32_fs *fat32, uint32_t offset, uint
     uint32_t sector = fat32->fatstart + (cluster * 4 / boot->BPB_BytsPerSec);
     uint32_t offset = cluster * 4 % boot->BPB_BytsPerSec;
     if (prevsector != sector) {
-      if (bbuf != NULL)
-        deallocate_page(bbuf);
-      bbuf = alloc_and_readblock(sector + fat32->volume_first);
+      bbuf = readblock_from_cache(sector + fat32->volume_first);
     }
     cluster = *((uint32_t *)(bbuf + offset)) & 0x0fffffff;
     if (!is_active_cluster(cluster)) {
@@ -166,8 +198,6 @@ static uint32_t walk_cluster_chain(struct fat32_fs *fat32, uint32_t offset, uint
     }
   }
 exit:
-  if (bbuf != NULL)
-    deallocate_page(bbuf);
   return cluster;
 }
 
@@ -344,7 +374,12 @@ int fat32_read(struct fat32_file *fatfile, void *buf, unsigned long offset, size
   if (tail <= offset)
     return 0;
 
-  uint32_t current_cluster = walk_cluster_chain(fat32, offset, fatfile->cluster);
+  uint32_t current_cluster;
+  if (fatfile->last_offset == offset)
+    current_cluster = fatfile->last_cluster;
+  else
+    current_cluster = walk_cluster_chain(fat32, offset, fatfile->cluster);
+
   uint32_t inblk_off = offset % BLOCKSIZE;
   for (int blkno = fat32_firstblk(fat32, current_cluster, offset);
        remain > 0 && is_active_cluster(current_cluster);
@@ -360,6 +395,9 @@ int fat32_read(struct fat32_file *fatfile, void *buf, unsigned long offset, size
   }
 
   uint32_t read_bytes = (tail - offset) - remain;
+  fatfile->last_offset = offset + read_bytes;
+  fatfile->last_cluster = current_cluster;
+
   return read_bytes;
 }
 

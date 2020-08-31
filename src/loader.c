@@ -23,6 +23,7 @@ int load_file_to_memory(struct task_struct *tsk, const char *name, unsigned long
   int remain = fat32_file_size(&file);
   int total = remain;
   int offset = 0;
+  int progress = 0;
   unsigned long current_va = va & PAGE_MASK;
 
   printf("  0%%");
@@ -40,10 +41,9 @@ int load_file_to_memory(struct task_struct *tsk, const char *name, unsigned long
     offset += readsz;
     current_va += PAGE_SIZE;
 
-    printf("\b\b\b\b%3d%%", (total - remain) * 100 / total);
+    if (progress != (total - remain) * 100 / total)
+      printf("\b\b\b\b%3d%%", progress = (total - remain) * 100 / total);
   }
-
-  tsk->name = name;
 
   return 0;
 }
@@ -57,6 +57,8 @@ int raw_binary_loader (void *arg, struct pt_regs *regs) {
 
   regs->pc = loader_args->entry_point;
   regs->sp = loader_args->sp;
+
+  current->name = loader_args->filename;
 
   return 0;
 }
@@ -89,6 +91,8 @@ int linux_loader (void *arg, struct pt_regs *regs) {
   regs->regs[1] = 0;
   regs->regs[2] = 0;
   regs->regs[3] = 0;
+
+  current->name = loader_args->kernel_image;
 
   return 0;
 }

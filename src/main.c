@@ -66,8 +66,8 @@ void hypervisor_main() {
   */
 
   struct linux_loader_args ll_args4 = {
-    .kernel_image = "linux-5.8.5.bin",
-    .device_tree  = "bcm2837-rpi-3-b.dtb",
+    .kernel_image = "Image",
+    .device_tree  = "bcm2710-rpi-3-b.dtb",
     .initramfs    = NULL,
   };
   if (create_task(linux_loader, &ll_args4) < 0) {
@@ -75,6 +75,7 @@ void hypervisor_main() {
     return;
   }
 
+  /*
   struct raw_binary_loader_args bl_args5 = {
     .load_addr = 0x0,
     .entry_point = 0x0,
@@ -85,6 +86,7 @@ void hypervisor_main() {
     printf("error while starting task");
     return;
   }
+  */
 
   while (1) {
     disable_irq();

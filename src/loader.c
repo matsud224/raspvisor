@@ -6,6 +6,34 @@
 #include "utils.h"
 #include "debug.h"
 
+uint32_t crc_table[256];
+
+void make_crc_table(void) {
+  for (uint32_t i = 0; i < 256; i++) {
+    uint32_t c = i;
+    for (int j = 0; j < 8; j++) {
+      c = (c & 1) ? (0xEDB88320 ^ (c >> 1)) : (c >> 1);
+    }
+    crc_table[i] = c;
+  }
+}
+
+uint32_t crc32_init() {
+  uint32_t c = 0xFFFFFFFF;
+  return c;
+}
+
+uint32_t crc32_update(uint32_t c, uint8_t *buf, size_t len) {
+  for (size_t i = 0; i < len; i++) {
+    c = crc_table[(c ^ buf[i]) & 0xFF] ^ (c >> 8);
+  }
+  return c;
+}
+
+uint32_t crc32_finalize(uint32_t c) {
+  return c ^ 0xFFFFFFFF;
+}
+
 // va should be page-aligned.
 int load_file_to_memory(struct task_struct *tsk, const char *name, unsigned long va) {
   struct fat32_fs hfat;
@@ -26,6 +54,8 @@ int load_file_to_memory(struct task_struct *tsk, const char *name, unsigned long
   int progress = 0;
   unsigned long current_va = va & PAGE_MASK;
 
+  make_crc_table();
+  uint32_t crc = crc32_init();
   printf("  0%%");
   while (remain > 0) {
     uint8_t *buf = allocate_task_page(tsk, current_va);
@@ -43,7 +73,11 @@ int load_file_to_memory(struct task_struct *tsk, const char *name, unsigned long
 
     if (progress != (total - remain) * 100 / total)
       printf("\b\b\b\b%3d%%", progress = (total - remain) * 100 / total);
+
+    crc = crc32_update(crc, buf, readsz);
   }
+
+  printf("\ncrc32 of %s = %x\n", name, crc32_finalize(crc));
 
   return 0;
 }
@@ -67,8 +101,8 @@ int linux_loader (void *arg, struct pt_regs *regs) {
   struct linux_loader_args *loader_args = arg;
 
   // FIXME
-  unsigned long kernel_load_addr = 0x0;
-  unsigned long dtb_load_addr = 0x30000000;
+  unsigned long kernel_load_addr = 0x80000;
+  unsigned long dtb_load_addr = 0x10000000;
   //unsigned long initramfs_load_addr = 0x0;
 
   if (load_file_to_memory(current,

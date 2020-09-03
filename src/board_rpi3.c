@@ -511,6 +511,7 @@ unsigned long rpi3_mmio_read(struct task_struct *tsk, unsigned long addr) {
   } else if (ADDR_IN_MBOX(addr)) {
     return handle_mbox_read(tsk, addr);
   }
+  INFO("mmio_read not handled: %x", addr);
   return 0;
 }
 
@@ -525,6 +526,8 @@ void rpi3_mmio_write(struct task_struct *tsk, unsigned long addr, unsigned long 
     handle_systimer_write(tsk, addr, val);
   } else if (ADDR_IN_MBOX(addr)) {
     handle_mbox_write(tsk, addr, val);
+  } else {
+    INFO("mmio_write not handled: %x", addr);
   }
 }
 

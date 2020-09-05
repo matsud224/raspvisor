@@ -1,10 +1,13 @@
 # raspvisor
 A simple type-1 hypervisor on Raspberry Pi 3 (aarch64)
 
+Article about raspvisor is [here](https://qiita.com/matsud224/items/7ce824d62152054eec41) (Japanese).
+
 *Warning: This is a hobby project and not for practical use.*
 
 # Setup
 First, write a Raspberry Pi OS (previously called Raspbian) image to your SD card to make partitions and install firmwares.
+Execute following commands to build. (GNU toolchain for aarch64-linux-gnu is required.)
 ```
 $ export SD_BOOT_DIR=/path/to/bootpartiton/on/sdcard
 $ export SD_ROOTFS_DIR=/path/to/rootfspartiton/on/sdcard
